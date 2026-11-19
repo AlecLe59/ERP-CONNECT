@@ -152,6 +152,15 @@ public static class RpcMethods
     public static readonly RpcMethodDescriptor ScriptsLimits = new(
         "scripts.limits", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(ScriptLimitsResult), "Limites d'exécution des scripts");
 
+    public static readonly RpcMethodDescriptor LicenseGet = new(
+        "license.get", PermissionMode.Required, "dashboard.read", typeof(EmptyParams), typeof(LicenseStatusResult), "État de la licence et identifiant d'installation");
+
+    public static readonly RpcMethodDescriptor LicenseImport = new(
+        "license.import", PermissionMode.Required, "license.manage", typeof(LicenseImportParams), typeof(LicenseStatusResult), "Importer un fichier de licence (activation hors ligne)");
+
+    public static readonly RpcMethodDescriptor LicenseRemove = new(
+        "license.remove", PermissionMode.Required, "license.manage", typeof(EmptyParams), typeof(DeleteResult), "Retirer la licence importée");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
@@ -162,6 +171,7 @@ public static class RpcMethods
         ConnectionsDiscover, FlowsPreview, FlowsFunctions,
         RunsResume, SchedulesList, SchedulesSave, SchedulesDelete, AlertsList, AlertsAcknowledge,
         ScriptsTest, ScriptsLimits,
+        LicenseGet, LicenseImport, LicenseRemove,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));

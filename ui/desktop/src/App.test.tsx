@@ -22,11 +22,15 @@ describe("App", () => {
     expect(within(nav).getByText("Paramètres")).toBeInTheDocument();
   });
 
-  it("un écran de phase future n'affiche aucune donnée", async () => {
+  it("tous les menus ouvrent un écran développé", async () => {
     renderWithEngine(<App />, new FakeEngine(ALL_PERMISSIONS));
-    await userEvent.click(await screen.findByRole("button", { name: /Licence/ }));
-    expect(await screen.findByText(/Disponible en Phase 7/)).toBeInTheDocument();
-    expect(screen.queryByRole("table")).toBeNull();
+    const nav = await screen.findByRole("navigation", { name: "Menu principal" });
+    await waitFor(() => expect(within(nav).getAllByRole("button")).toHaveLength(11));
+    for (const button of within(nav).getAllByRole("button")) {
+      await userEvent.click(button);
+      expect(screen.queryByText(/Disponible en Phase/)).toBeNull();
+    }
+    expect(screen.getByRole("main")).not.toBeEmptyDOMElement();
   });
 
   it("signale le moteur indisponible puis se reconnecte seul", async () => {

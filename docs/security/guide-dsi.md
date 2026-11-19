@@ -1,4 +1,4 @@
-# ERP Connect – Note de sécurité pour la DSI (mise à jour Phase 6)
+# ERP Connect – Note de sécurité pour la DSI (mise à jour Phase 7)
 
 > État : décrit le comportement **conçu et testé sous Linux pour la partie indépendante de Windows**. Les points
 > marqués « à confirmer sous Windows » n'ont pas encore été vérifiés sur une machine Windows réelle.
@@ -59,3 +59,13 @@ d'intégrité (écran Journal d'audit, méthode `audit.verifyChain`).
   Un dépassement arrête l'exécution du flux.
 - **Limite** : le script s'exécute dans le processus du service (compte virtuel à privilèges minimaux), pas dans un
   processus isolé. Python isolé n'est pas disponible. Détail et preuves : [revue de sécurité](revue-securite-phase-6.md).
+
+## Licence (Phase 7)
+
+- Activation **hors ligne** : aucun appel réseau, aucune télémétrie. Le fichier de licence ne contient que des données
+  descriptives (client, édition, dates, fonctions) et une signature ; il n'est pas secret.
+- Le moteur ne contient que la clé **publique** de l'éditeur. Importer ou retirer une licence exige le rôle Administrateur
+  et est inscrit au journal d'audit, y compris les tentatives refusées.
+- Une licence expirée ou absente (après 30 jours d'évaluation) bloque les exécutions et les nouvelles publications,
+  jamais l'accès aux données, à l'historique ni au journal d'audit.
+- Les alertes d'exécution sont écrites dans le journal des événements Windows (source « ERP Connect ») pour vos outils de supervision.

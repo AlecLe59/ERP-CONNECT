@@ -72,6 +72,9 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             ["alerts.acknowledge"] = () => new AlertAcknowledgeParams(999_999),
             ["scripts.test"] = () => new ScriptTestParams("function transform(r) { return r; }", "{}"),
             ["scripts.limits"] = () => null,
+            ["license.get"] = () => null,
+            ["license.import"] = () => new LicenseImportParams("{}"),
+            ["license.remove"] = () => null,
         };
 
         var checkedPairs = 0;

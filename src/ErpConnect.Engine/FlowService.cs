@@ -4,6 +4,7 @@ using ErpConnect.Core.Abstractions;
 using ErpConnect.Core.Audit;
 using ErpConnect.Core.Authorization;
 using ErpConnect.Core.Flows;
+using ErpConnect.Core.Licensing;
 using ErpConnect.Core.Settings;
 using ErpConnect.Flows;
 
@@ -21,6 +22,9 @@ public sealed partial class FlowService
     public Func<CancellationToken, Task<bool>>? ScriptsAllowed { get; init; }
 
     public async Task<bool> ScriptsAllowedAsync(CancellationToken ct) => ScriptsAllowed is null || await ScriptsAllowed(ct).ConfigureAwait(false);
+
+    /// <summary>Droits de licence (publication, scripts). Null : tout autorisé (tests du noyau).</summary>
+    public IEntitlements? Entitlements { get; init; }
 
     public static bool UsesScripts(FlowDefinition definition) => definition?.AllSteps.Any(s => s.Kind == "script") ?? false;
 
@@ -56,7 +60,7 @@ public sealed partial class FlowService
         var errors = definition.Validate().Select(e => new FieldError(e.Field, e.Message)).ToList();
         if (UsesScripts(definition) && !await ScriptsAllowedAsync(ct).ConfigureAwait(false))
         {
-            errors.Add(new FieldError("steps", "Les scripts sont désactivés (Paramètres > Scripts, réservé à l'administrateur)."));
+            errors.Add(new FieldError("steps", "Les scripts sont désactivés (Paramètres, réservé à l'administrateur) ou non inclus dans la licence."));
         }
         if (string.IsNullOrWhiteSpace(name) || name.Length > 100)
         {
@@ -97,6 +101,12 @@ public sealed partial class FlowService
     public async Task<FlowRecord> PublishAsync(CallerIdentity caller, string id, long version, string correlationId, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(caller);
+        var current = await _repository.GetAsync(id, ct).ConfigureAwait(false);
+        if (current is { PublishedVersion: null })
+        {
+            await LicenseService.RequireAsync(Entitlements, Features.PublishFlow, ct).ConfigureAwait(false); // republier un flux déjà publié ne compte pas
+        }
+
         var published = await _repository.PublishAsync(id, version, caller.UserName, _clock.UtcNow, ct).ConfigureAwait(false)
             ?? throw new EngineException(EngineErrorKind.NotFound, "Flux ou version introuvable.");
         await _audit.AppendAsync(new AuditEntry(caller.UserSid, caller.UserName, "flows.publish", $"flow/{id}", AuditOutcomes.Success,

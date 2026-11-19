@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "erpconnect.core": {
+        "type": "Project"
+      },
+      "erpconnect.security": {
+        "type": "Project",
+        "dependencies": {
+          "ErpConnect.Core": "[0.6.0, )",
+          "System.Security.Cryptography.ProtectedData": "[10.0.15, )"
+        }
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.15, )",
+        "resolved": "10.0.15",
+        "contentHash": "AG49oTxB0R4YQJzeIIHRgqyaI3SOT8Q8vEfGUcju2WxOvsBkDJU4FKTQ8gYQAYCxmHOHqyJL0UDGcCf8nzRoiw=="
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 // Fichier généré par ErpConnect.Tools.ContractGen à partir de ErpConnect.Contracts.
 // NE PAS MODIFIER À LA MAIN : relancer `dotnet run --project tools/ErpConnect.Tools.ContractGen`.
 
-export const PROTOCOL_VERSION = "1.4";
+export const PROTOCOL_VERSION = "1.5";
 
 export interface AlertAcknowledgeParams {
   id: number;
@@ -295,6 +295,33 @@ export interface KeyValueDto {
   value: string | null;
 }
 
+export interface LicenseImportParams {
+  content: string;
+}
+
+export interface LicenseInfoDto {
+  licenseId: string;
+  customer: string;
+  edition: string;
+  installationId: string;
+  issuedAt: string;
+  expiresAt: string | null;
+  features: string[];
+  maxPublishedFlows: number | null;
+}
+
+export interface LicenseStatusResult {
+  state: string;
+  installationId: string;
+  evaluationEndsAt: string | null;
+  license: LicenseInfoDto | null;
+  problem: string | null;
+  importedAt: string | null;
+  importedBy: string | null;
+  canVerify: boolean;
+  publishedFlows: number;
+}
+
 export interface ListAssignmentsResult {
   items: RoleAssignmentDto[];
 }
@@ -584,6 +611,9 @@ export interface RpcMethodMap {
   "alerts.acknowledge": { params: AlertAcknowledgeParams; result: AlertAcknowledgeResult };
   "scripts.test": { params: ScriptTestParams; result: ScriptTestResult };
   "scripts.limits": { params: EmptyParams; result: ScriptLimitsResult };
+  "license.get": { params: EmptyParams; result: LicenseStatusResult };
+  "license.import": { params: LicenseImportParams; result: LicenseStatusResult };
+  "license.remove": { params: EmptyParams; result: DeleteResult };
 }
 
 export type RpcMethodName = keyof RpcMethodMap;
@@ -637,6 +667,9 @@ export const METHOD_PERMISSIONS: Record<RpcMethodName, string | null> = {
   "alerts.acknowledge": "flows.run",
   "scripts.test": "flows.edit",
   "scripts.limits": "flows.read",
+  "license.get": "dashboard.read",
+  "license.import": "license.manage",
+  "license.remove": "license.manage",
 };
 
 export const RPC_ERROR_CODES = {

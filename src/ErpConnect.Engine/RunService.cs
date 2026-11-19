@@ -5,6 +5,7 @@ using ErpConnect.Core.Abstractions;
 using ErpConnect.Core.Audit;
 using ErpConnect.Core.Authorization;
 using ErpConnect.Core.Flows;
+using ErpConnect.Core.Licensing;
 using ErpConnect.Core.Runs;
 using ErpConnect.Flows;
 
@@ -28,6 +29,9 @@ public sealed record RunServiceOptions
 public sealed class RunService : IAsyncDisposable
 {
     private readonly IRunRepository _runs;
+    /// <summary>Droits de licence. Null : tout autorisé (tests du noyau).</summary>
+    public IEntitlements? Entitlements { get; init; }
+
     private readonly FlowService _flows;
     private readonly ConnectionService _connections;
     private readonly IAuditLog _audit;
@@ -92,6 +96,12 @@ public sealed class RunService : IAsyncDisposable
     public async Task<RunRecord> StartAsync(CallerIdentity caller, string flowId, bool useDraft, string correlationId, CancellationToken ct, string trigger = "manual", RunRecord? parent = null)
     {
         ArgumentNullException.ThrowIfNull(caller);
+        await LicenseService.RequireAsync(Entitlements, Features.Run, ct).ConfigureAwait(false);
+        if (trigger is "schedule" or "retry")
+        {
+            await LicenseService.RequireAsync(Entitlements, Features.Scheduler, ct).ConfigureAwait(false);
+        }
+
         var flow = await _flows.GetAsync(flowId, ct).ConfigureAwait(false) ?? throw new EngineException(EngineErrorKind.NotFound, "Flux introuvable.");
         var version = parent?.FlowVersion ?? (useDraft ? flow.DraftVersion : flow.PublishedVersion ?? throw new EngineException(EngineErrorKind.Conflict, "Flux non publié : publiez-le ou lancez un test de la version en cours."));
         var (_, definition) = await _flows.LoadAsync(flowId, version, ct).ConfigureAwait(false);
@@ -301,7 +311,7 @@ public sealed class RunService : IAsyncDisposable
             (targetConnector, targetSettings) = await _connections.ResolveAsync(def.Target.ConnectionId, ct).ConfigureAwait(false);
             if (FlowService.UsesScripts(def) && !await _flows.ScriptsAllowedAsync(ct).ConfigureAwait(false))
             {
-                throw new EngineException(EngineErrorKind.Forbidden, "Ce flux contient un script et les scripts sont désactivés dans les paramètres.");
+                throw new EngineException(EngineErrorKind.Forbidden, "Ce flux contient un script et les scripts sont désactivés dans les paramètres ou non inclus dans la licence.");
             }
 
             pipeline = RecordPipeline.Compile(def);

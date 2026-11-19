@@ -37,4 +37,7 @@ public enum EngineErrorKind
     Conflict,
     NotFound,
     Forbidden,
+
+    /// <summary>Fonction non couverte par la licence (ou évaluation terminée).</summary>
+    Entitlement,
 }

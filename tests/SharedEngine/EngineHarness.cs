@@ -19,6 +19,7 @@ internal sealed class EngineHarness : IAsyncDisposable
 {
     private readonly ConcurrentQueue<CallerIdentity> _nextIdentities = new();
     private PipeServer? _server;
+    private ErpConnect.Security.Licensing.LicenseVerifier? _licenseVerifier;
 
     private EngineHarness(string root, FakeClock clock)
     {
@@ -41,9 +42,9 @@ internal sealed class EngineHarness : IAsyncDisposable
 
     public PipeServer Server => _server!;
 
-    public static async Task<EngineHarness> StartAsync(string root, FakeClock? clock = null, int maxConnections = 32)
+    public static async Task<EngineHarness> StartAsync(string root, FakeClock? clock = null, int maxConnections = 32, ErpConnect.Security.Licensing.LicenseVerifier? licenseVerifier = null)
     {
-        var h = new EngineHarness(root, clock ?? new FakeClock());
+        var h = new EngineHarness(root, clock ?? new FakeClock()) { _licenseVerifier = licenseVerifier };
         await h.StartCoreAsync(maxConnections);
         return h;
     }
@@ -76,7 +77,10 @@ internal sealed class EngineHarness : IAsyncDisposable
 
     private async Task StartCoreAsync(int maxConnections)
     {
-        Runtime = new EngineRuntime(new EnginePaths(Root), _ => new TestKeyProtector(), Principals, Clock, "0.2.0-test");
+        Runtime = new EngineRuntime(new EnginePaths(Root), _ => new TestKeyProtector(), Principals, Clock, "0.2.0-test")
+        {
+            LicenseVerifier = _licenseVerifier ?? new ErpConnect.Security.Licensing.LicenseVerifier([]),
+        };
         await Runtime.StartAsync(default);
         Dispatcher = new RpcDispatcher(new RuntimeAuthorizer(Runtime), new RuntimeAuditSink(Runtime), NullLogger<RpcDispatcher>.Instance, Runtime.Version);
         RpcEndpoints.Register(Dispatcher, Runtime);

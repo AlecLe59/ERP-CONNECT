@@ -22,6 +22,6 @@ export const MENU: MenuItem[] = [
   { id: "scripts", label: "Scripts", permission: "flows.edit", availableIn: null },
   { id: "users", label: "Utilisateurs et droits", permission: "users.read", availableIn: null },
   { id: "audit", label: "Journal d'audit", permission: "audit.read", availableIn: null },
-  { id: "license", label: "Licence", permission: "license.manage", availableIn: 7 },
+  { id: "license", label: "Licence", permission: "license.manage", availableIn: null },
   { id: "settings", label: "Paramètres", permission: "settings.read", availableIn: null },
 ];

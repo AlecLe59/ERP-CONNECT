@@ -12,6 +12,7 @@ import { Connections } from "./screens/Connections";
 import { Flows } from "./screens/Flows";
 import { Runs } from "./screens/Runs";
 import { Scripts } from "./screens/Scripts";
+import { License } from "./screens/License";
 
 const BANNER_TEXT: Record<ConnectionStatus, string> = {
   connecting: "Connexion au moteur…",
@@ -68,6 +69,7 @@ export function App() {
               : current.id === "schedules" ? <Schedules />
               : current.id === "monitoring" ? <Monitoring />
               : current.id === "scripts" ? <Scripts />
+              : current.id === "license" ? <License />
               : null
           )}
         </main>

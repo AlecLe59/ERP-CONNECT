@@ -207,9 +207,18 @@ public sealed class SchedulerService : IAsyncDisposable
                 return null;
             }
 
-            var retry = await _runs.ResumeAsync(System, last.Id, "scheduler", ct, "retry").ConfigureAwait(false);
-            await _schedules.SetStateAsync(s.FlowId, s.NextRunAt, retry.Id, retryAttempt, null, ct).ConfigureAwait(false);
-            return retry;
+            try
+            {
+                var retry = await _runs.ResumeAsync(System, last.Id, "scheduler", ct, "retry").ConfigureAwait(false);
+                await _schedules.SetStateAsync(s.FlowId, s.NextRunAt, retry.Id, retryAttempt, null, ct).ConfigureAwait(false);
+                return retry;
+            }
+            catch (EngineException ex)
+            {
+                await _schedules.SetStateAsync(s.FlowId, s.NextRunAt, s.LastRunId, retryAttempt, null, ct).ConfigureAwait(false);
+                await AlertAsync(s.FlowId, last.Id, $"Flux {s.FlowId} : nouvelle tentative impossible ({ex.Message})", ct).ConfigureAwait(false);
+                return null;
+            }
         }
 
         if (s.NextRunAt is not { } next || next > now)

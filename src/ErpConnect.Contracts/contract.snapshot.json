@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "1.4",
+  "protocolVersion": "1.5",
   "pipeName": "ERPConnect.Engine",
   "maxMessageBytes": 4194304,
   "maxJsonDepth": 64,
@@ -129,6 +129,27 @@
       "permission": "flows.edit",
       "params": "FlowSaveParams",
       "result": "FlowSummaryDto"
+    },
+    {
+      "name": "license.get",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "LicenseStatusResult"
+    },
+    {
+      "name": "license.import",
+      "permissionMode": "Required",
+      "permission": "license.manage",
+      "params": "LicenseImportParams",
+      "result": "LicenseStatusResult"
+    },
+    {
+      "name": "license.remove",
+      "permissionMode": "Required",
+      "permission": "license.manage",
+      "params": "EmptyParams",
+      "result": "DeleteResult"
     },
     {
       "name": "runs.cancel",
@@ -1058,6 +1079,84 @@
       {
         "name": "value",
         "type": "string | null"
+      }
+    ],
+    "LicenseImportParams": [
+      {
+        "name": "content",
+        "type": "string"
+      }
+    ],
+    "LicenseInfoDto": [
+      {
+        "name": "licenseId",
+        "type": "string"
+      },
+      {
+        "name": "customer",
+        "type": "string"
+      },
+      {
+        "name": "edition",
+        "type": "string"
+      },
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "issuedAt",
+        "type": "string"
+      },
+      {
+        "name": "expiresAt",
+        "type": "string | null"
+      },
+      {
+        "name": "features",
+        "type": "string[]"
+      },
+      {
+        "name": "maxPublishedFlows",
+        "type": "number | null"
+      }
+    ],
+    "LicenseStatusResult": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "evaluationEndsAt",
+        "type": "string | null"
+      },
+      {
+        "name": "license",
+        "type": "LicenseInfoDto | null"
+      },
+      {
+        "name": "problem",
+        "type": "string | null"
+      },
+      {
+        "name": "importedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "importedBy",
+        "type": "string | null"
+      },
+      {
+        "name": "canVerify",
+        "type": "boolean"
+      },
+      {
+        "name": "publishedFlows",
+        "type": "number"
       }
     ],
     "ListAssignmentsResult": [

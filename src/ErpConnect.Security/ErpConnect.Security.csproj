@@ -10,6 +10,11 @@
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
+  <!-- Clé publique de l'éditeur pour vérifier les licences : fournie par la chaîne de publication
+       (dotnet build -p:ErpConnectLicensePublicKey=<base64 SubjectPublicKeyInfo>). Vide : aucune licence vérifiable (évaluation seule). -->
+  <ItemGroup>
+    <AssemblyMetadata Include="ErpConnect.LicensePublicKey" Value="$(ErpConnectLicensePublicKey)" />
+  </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ErpConnect.Security.Tests" />
   </ItemGroup>

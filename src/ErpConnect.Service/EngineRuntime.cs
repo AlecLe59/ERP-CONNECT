@@ -75,6 +75,11 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public IAlertRepository Alerts { get; private set; } = null!;
 
+    public LicenseService License { get; private set; } = null!;
+
+    /// <summary>Clés de l'éditeur (celle de la compilation ; remplaçable par les tests).</summary>
+    public Security.Licensing.LicenseVerifier LicenseVerifier { get; init; } = Security.Licensing.LicenseVerifier.FromBuild();
+
     /// <summary>Connecteurs installés (remplaçables par les tests).</summary>
     public IReadOnlyList<Connectors.Sdk.IConnector> ConnectorCatalog { get; init; } = ErpConnect.Connectors.ConnectorRegistry.CreateDefault();
 
@@ -123,13 +128,17 @@ internal sealed class EngineRuntime : IAsyncDisposable
         Connections = new ConnectionService(connections, flows, _vault, _audit, Clock, ConnectorCatalog);
         Preview = new PreviewService(Connections);
         var settings = Settings;
+        License = new LicenseService(new LicenseRepository(Config), LicenseVerifier, flows, _audit, Clock, Installation.Id, Installation.InstalledAt);
+        var license = License;
         Flows = new FlowService(flows, connections, _audit, Clock)
         {
-            ScriptsAllowed = async token => (await settings.GetAsync(token).ConfigureAwait(false)).Settings.ScriptsEnabled,
+            ScriptsAllowed = async token => (await settings.GetAsync(token).ConfigureAwait(false)).Settings.ScriptsEnabled
+                && (await license.CheckAsync(Core.Licensing.Features.Scripts, token).ConfigureAwait(false)).Allowed,
+            Entitlements = license,
         };
         var runRepository = new RunRepository(RunsDb);
         Alerts = runRepository;
-        Runs = new RunService(runRepository, Flows, Connections, _audit, Clock, Events, RunOptions);
+        Runs = new RunService(runRepository, Flows, Connections, _audit, Clock, Events, RunOptions) { Entitlements = license };
         Scheduler = new SchedulerService(new ScheduleRepository(Config), Flows, Runs, _audit, Clock, runRepository, Events);
         await Runs.RecoverInterruptedAsync(ct).ConfigureAwait(false);
     }

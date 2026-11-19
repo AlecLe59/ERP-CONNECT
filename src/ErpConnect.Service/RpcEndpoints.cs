@@ -146,6 +146,7 @@ internal static class RpcEndpoints
         RegisterDesign(dispatcher, runtime);
         RegisterScheduling(dispatcher, runtime);
         RegisterScripts(dispatcher, runtime);
+        RegisterLicense(dispatcher, runtime);
     }
 
     private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -258,11 +259,28 @@ internal static class RpcEndpoints
             ExpressionCompiler.FunctionCatalog.Select(f => new FunctionDto(f.Name, f.Signature, f.Help)).ToArray())));
     }
 
+    private static void RegisterLicense(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<EmptyParams, LicenseStatusResult>(RpcMethods.LicenseGet, async (_, _, ct) =>
+            ToDto(await runtime.License.GetStatusAsync(ct).ConfigureAwait(false)));
+
+        dispatcher.Register<LicenseImportParams, LicenseStatusResult>(RpcMethods.LicenseImport, async (ctx, p, ct) =>
+            ToDto(await Guard(() => runtime.License.ImportAsync(ctx.Caller, p.Content, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<EmptyParams, DeleteResult>(RpcMethods.LicenseRemove, async (ctx, _, ct) =>
+            new DeleteResult(await runtime.License.RemoveAsync(ctx.Caller, ctx.CorrelationId, ct).ConfigureAwait(false)));
+    }
+
+    private static LicenseStatusResult ToDto(LicenseStatus s) => new(
+        s.State, s.InstallationId, s.EvaluationEndsAt,
+        s.License is { } l ? new LicenseInfoDto(l.LicenseId, l.Customer, l.Edition, l.InstallationId, l.IssuedAt, l.ExpiresAt, l.Features, l.MaxPublishedFlows) : null,
+        s.Problem, s.ImportedAt, s.ImportedBy, s.CanVerify, s.PublishedFlows);
+
     private static async Task RequireScriptsAsync(EngineRuntime runtime, CancellationToken ct)
     {
         if (!await runtime.Flows.ScriptsAllowedAsync(ct).ConfigureAwait(false))
         {
-            throw new RpcException(RpcErrorCodes.EntitlementDenied, "Les scripts sont désactivés dans les paramètres.");
+            throw new RpcException(RpcErrorCodes.EntitlementDenied, "Les scripts sont désactivés dans les paramètres ou non inclus dans la licence.");
         }
     }
 
@@ -441,6 +459,7 @@ internal static class RpcEndpoints
                 EngineErrorKind.Conflict => RpcException.Conflict(ex.Message),
                 EngineErrorKind.NotFound => new RpcException(RpcErrorCodes.NotFound, ex.Message),
                 EngineErrorKind.Forbidden => new RpcException(RpcErrorCodes.Forbidden, ex.Message),
+                EngineErrorKind.Entitlement => new RpcException(RpcErrorCodes.EntitlementDenied, ex.Message),
                 _ => new RpcException(RpcErrorCodes.InternalError, "Erreur interne."),
             };
         }

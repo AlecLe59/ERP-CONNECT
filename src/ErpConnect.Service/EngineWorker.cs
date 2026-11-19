@@ -117,7 +117,19 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
         _runtime.Events.OnRunChanged += (runId, flowId, status) =>
             Fire(RpcNotifications.RunChanged, new RunChangedPayload(runId, flowId, RpcEndpoints.StatusName(status)));
         _runtime.Events.OnAlertRaised += (id, flowId, severity, message) =>
+        {
+            // Supervision externe : les alertes vont aussi au journal du service et, en service Windows, au journal des événements (source « ERP Connect », niveau Erreur ou Avertissement).
+            if (severity == "error")
+            {
+                LogAlertError(_logger, id, flowId, message);
+            }
+            else
+            {
+                LogAlertWarning(_logger, id, flowId, message);
+            }
+
             Fire(RpcNotifications.AlertRaised, new AlertRaisedPayload(id, flowId, severity, message));
+        };
     }
 
     private void ApplyLogLevel(string level) => _level.MinimumLevel = level switch
@@ -142,4 +154,10 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
 
     [LoggerMessage(EventId = 5, Level = LogLevel.Information, Message = "ERP Connect Engine arrêté")]
     private static partial void LogStopped(ILogger logger);
+
+    [LoggerMessage(EventId = 100, Level = LogLevel.Error, Message = "Alerte {AlertId}, flux {FlowId} : {Message}")]
+    private static partial void LogAlertError(ILogger logger, long alertId, string flowId, string message);
+
+    [LoggerMessage(EventId = 101, Level = LogLevel.Warning, Message = "Alerte {AlertId}, flux {FlowId} : {Message}")]
+    private static partial void LogAlertWarning(ILogger logger, long alertId, string flowId, string message);
 }
