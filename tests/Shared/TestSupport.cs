@@ -86,3 +86,15 @@ internal static class Identities
 
     public static CallerIdentity ForUser(string rid) => new($"S-1-5-21-1000-1000-1000-{rid}", $@"PC\user{rid}", ["S-1-5-32-545"]);
 }
+
+/// <summary>Lecture d'un fichier ouvert par le moteur (SQLite) : sous Windows, il faut partager lecture/écriture.</summary>
+internal static class SharedFile
+{
+    public static async Task<byte[]> ReadAllBytesAsync(string path)
+    {
+        await using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var m = new MemoryStream();
+        await s.CopyToAsync(m);
+        return m.ToArray();
+    }
+}

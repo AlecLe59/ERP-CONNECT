@@ -103,13 +103,13 @@ public sealed class FlowRpcTests : IAsyncLifetime
     [Fact]
     public async Task Secrets_are_never_returned_by_any_method()
     {
-        const string Secret = "Jeton-Ultra-Secret-123";
+        var generated = "v-" + Guid.NewGuid().ToString("N"); // générée à l'exécution
         await using var c = await _engine.ConnectAsync(Identities.Admin);
-        var saved = await c.CallAsync("connections.save", new ConnectionSaveParams("api", "API", "rest", [new("baseUrl", "https://api.example/")], [new("token", Secret)], [], 0));
-        saved.ToJsonString().ShouldNotContain(Secret);
+        var saved = await c.CallAsync("connections.save", new ConnectionSaveParams("api", "API", "rest", [new("baseUrl", "https://api.example/")], [new("token", generated)], [], 0));
+        saved.ToJsonString().ShouldNotContain(generated);
         saved.Result()["secretFields"]!.AsArray().Select(x => x!.GetValue<string>()).ShouldBe(["token"]);
-        (await c.CallAsync("connections.list")).ToJsonString().ShouldNotContain(Secret);
-        (await c.CallAsync("audit.query", new AuditQueryParams(1, 50, null, null, null))).ToJsonString().ShouldNotContain(Secret);
+        (await c.CallAsync("connections.list")).ToJsonString().ShouldNotContain(generated);
+        (await c.CallAsync("audit.query", new AuditQueryParams(1, 50, null, null, null))).ToJsonString().ShouldNotContain(generated);
     }
 
     [Fact]

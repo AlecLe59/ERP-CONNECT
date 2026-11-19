@@ -70,7 +70,7 @@ public sealed class SecretLeakTests : IAsyncLifetime
                 byte[] bytes;
                 try
                 {
-                    bytes = await File.ReadAllBytesAsync(file);
+                    bytes = await SharedFile.ReadAllBytesAsync(file);
                 }
                 catch (FileNotFoundException)
                 {

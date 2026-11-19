@@ -149,25 +149,25 @@ public sealed class KernelTests : IAsyncLifetime
     [Fact]
     public async Task Secrets_go_to_the_vault_never_to_the_connection_table()
     {
-        const string Secret = "S3cr3t-Mot-De-Passe-Unique";
-        var saved = await _k.RestAsync("api", "https://api.example/", new() { ["token"] = Secret });
+        var generated = "v-" + Guid.NewGuid().ToString("N"); // générée à l'exécution
+        var saved = await _k.RestAsync("api", "https://api.example/", new() { ["token"] = generated });
         saved.SecretFields.ShouldBe(["token"]);
-        saved.Settings.Values.ShouldNotContain(Secret);
-        var dbBytes = await File.ReadAllBytesAsync(_k.ConfigDb.Path);
+        saved.Settings.Values.ShouldNotContain(generated);
+        var dbBytes = await ErpConnect.Tests.Shared.SharedFile.ReadAllBytesAsync(_k.ConfigDb.Path);
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        Encoding.UTF8.GetString(dbBytes).ShouldNotContain(Secret);
+        Encoding.UTF8.GetString(dbBytes).ShouldNotContain(generated);
         var (_, settings) = await _k.Connections.ResolveAsync("api", default);
-        settings.GetSecret("token").ShouldBe(Secret);
+        settings.GetSecret("token").ShouldBe(generated);
 
-        // Une modification sans secret conserve le secret ; clearSecrets l'efface.
+        // Une modification sans generated conserve le generated ; clearSecrets l'efface.
         var updated = await _k.Connections.SaveAsync(Kernel.Admin, "api", "api", "rest", new Dictionary<string, string?> { ["baseUrl"] = "https://api2.example/" }, new Dictionary<string, string?>(), [], saved.Version, "t", default);
-        (await _k.Connections.ResolveAsync("api", default)).Settings.GetSecret("token").ShouldBe(Secret);
+        (await _k.Connections.ResolveAsync("api", default)).Settings.GetSecret("token").ShouldBe(generated);
         await _k.Connections.SaveAsync(Kernel.Admin, "api", "api", "rest", new Dictionary<string, string?> { ["baseUrl"] = "https://api2.example/" }, new Dictionary<string, string?>(), ["token"], updated.Version, "t", default);
         (await _k.Connections.ResolveAsync("api", default)).Settings.GetSecret("token").ShouldBeNull();
 
         var audit = await _k.Audit.QueryAsync(new Core.Audit.AuditQuery(1, 50, "connections.save", null, null), default);
         audit.Items.Count.ShouldBe(3);
-        audit.Items.ShouldAllBe(e => e.DetailsJson == null || !e.DetailsJson.Contains(Secret));
+        audit.Items.ShouldAllBe(e => e.DetailsJson == null || !e.DetailsJson.Contains(generated));
     }
 
     [Fact]

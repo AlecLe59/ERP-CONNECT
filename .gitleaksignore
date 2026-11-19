@@ -1,0 +1,3 @@
+# Valeurs factices de tests du commit de Phase 3, remplacées depuis par des valeurs générées à l'exécution.
+0cb027f2382eb9e5e119fa234a78b73c93c0c870:tests/ErpConnect.Engine.Tests/KernelTests.cs:generic-api-key:152
+0cb027f2382eb9e5e119fa234a78b73c93c0c870:tests/ErpConnect.Service.IntegrationTests/FlowRpcTests.cs:generic-api-key:106
