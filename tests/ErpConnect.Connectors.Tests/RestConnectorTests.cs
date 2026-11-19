@@ -155,20 +155,21 @@ public class RestConnectorTests
         server.Requests.Single().Authorization.ShouldBe(expected);
     }
 
+    private static readonly DateTimeOffset FixedNow = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     [Fact]
     public async Task Rate_limit_spaces_requests()
     {
         using var server = new TestHttpServer((_, _) => (200, "{}", null));
         var delay = new RecordingDelay();
-        await using (var w = new RestConnector { Delay = delay.Delay }.CreateWriter(Settings(server.BaseUrl, new() { ["maxRequestsPerSecond"] = "2" }), new WriteRequest("/x")))
+        await using (var w = new RestConnector { Delay = delay.Delay, Now = () => FixedNow }.CreateWriter(Settings(server.BaseUrl, new() { ["maxRequestsPerSecond"] = "2" }), new WriteRequest("/x")))
         {
             await w.WriteBatchAsync([Record.From(("a", 1L)), Record.From(("a", 2L)), Record.From(("a", 3L))], CancellationToken.None);
         }
 
         delay.Waits.Count.ShouldBe(2);
-        // Le délai simulé ne fait pas avancer l'horloge : la 2e attente cumule les deux intervalles.
-        delay.Waits[0].ShouldBeInRange(TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(500));
-        delay.Waits[1].ShouldBeInRange(TimeSpan.FromMilliseconds(800), TimeSpan.FromMilliseconds(1000));
+        // Horloge figée, délai simulé : la 2e attente cumule exactement les deux intervalles de 500 ms.
+        delay.Waits.ShouldBe([TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(1000)]);
     }
 
     [Fact]

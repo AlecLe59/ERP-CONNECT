@@ -46,7 +46,10 @@ public sealed class RestConnector : IConnector
     /// <summary>Délai d'attente de test (remplaçable).</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
 
-    internal Session Open(ConnectorSettings settings) => new(settings, _handlerFactory(), Delay);
+    /// <summary>Horloge du limiteur de requêtes (remplaçable par les tests).</summary>
+    public Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.UtcNow;
+
+    internal Session Open(ConnectorSettings settings) => new(settings, _handlerFactory(), Delay, Now);
 
     public async Task<ConnectionTestResult> TestAsync(ConnectorSettings settings, CancellationToken ct)
     {
@@ -96,7 +99,7 @@ public sealed class RestConnector : IConnector
         private readonly RetryPolicy _retry;
         private readonly RequestRateLimiter _limiter;
 
-        public Session(ConnectorSettings settings, HttpMessageHandler handler, Func<TimeSpan, CancellationToken, Task> delay)
+        public Session(ConnectorSettings settings, HttpMessageHandler handler, Func<TimeSpan, CancellationToken, Task> delay, Func<DateTimeOffset> now)
         {
             _settings = settings;
             var raw = settings.Require("baseUrl");
@@ -118,7 +121,7 @@ public sealed class RestConnector : IConnector
             _base = b;
             _http = new HttpClient(handler, disposeHandler: true) { Timeout = TimeSpan.FromSeconds(Math.Clamp(settings.GetInt("timeoutSeconds", 60), 1, 3600)) };
             _retry = new RetryPolicy(Math.Clamp(settings.GetInt("maxRetries", 5), 1, 20), delay: delay);
-            _limiter = new RequestRateLimiter(settings.GetInt("maxRequestsPerSecond", 0), delay: delay);
+            _limiter = new RequestRateLimiter(settings.GetInt("maxRequestsPerSecond", 0), now, delay);
         }
 
         public int Requests { get; private set; }

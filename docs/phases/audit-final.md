@@ -12,7 +12,7 @@
 | Tests .NET (11 projets, performance comprise) | 474 réussis, 7 ignorés (Windows uniquement), 0 échec sous Linux |
 | Tests interface (Vitest) | 47 réussis ; ESLint et `tsc` propres |
 | Contrôles | `restore --locked-mode` OK, gitleaks propre (aucun secret dans le dépôt) |
-| CI Windows | Phases 6 et 7 : un seul échec, `S13_thousand_connections_in_a_loop` (délai de connexion au pipe). Cause trouvée et corrigée (voir 4.1) ; **la correction attend la confirmation de la CI**. |
+| CI (Windows et Linux) | Échecs intermittents (S13, un test de scripts, un test de délai REST) : causes trouvées et corrigées (voir 4.1) ; **à confirmer sur plusieurs exécutions vertes**. |
 | Prêt pour la production ? | **Non.** Le moteur est fonctionnellement riche et bien testé, mais la mise en service Windows (MSI, comptes, ACL, DPAPI) n'a jamais été exécutée. |
 
 ## 2. Audit par phase
@@ -81,7 +81,7 @@
 
 1. **Passage sur Windows** (bloquant) : construire et installer le MSI, exécuter les procédures des rapports 2 et 8,
    conclure le test DPAPI sur compte virtuel, faire passer les tests `WindowsFact` sur une machine réelle, lancer l'application Tauri.
-2. Confirmer en CI la correction de S13.
+2. Confirmer sur plusieurs exécutions de CI que les échecs intermittents ont disparu.
 3. Connecteurs bases de données manquants (SQL Server, PostgreSQL au minimum), avec un serveur de test réel.
 4. Alertes par e-mail.
 5. Protection contre le recul d'horloge (mémoriser la date la plus récente vue).
@@ -90,11 +90,15 @@
 
 ## 4. Points de vigilance transverses
 
-### 4.1 S13 sous Windows (corrigé, à confirmer)
-Sous Windows, un client qui se déconnecte avant que le serveur accepte la connexion provoque une `IOException` ;
-l'instance de pipe n'était pas libérée. Les instances perdues s'accumulaient jusqu'au plafond (32) et plus aucun client ne pouvait se connecter.
-Correctif dans `PipeServer` : l'instance est libérée dans ce cas. Le test n'a pas été modifié. Ce cas ne se reproduit pas sous Linux :
-seule la CI Windows peut le confirmer. En production, ce défaut aurait pu rendre le moteur injoignable après des déconnexions brutales.
+### 4.1 Stabilité de la CI (corrigé, à confirmer sur plusieurs exécutions)
+Trois causes réelles trouvées en relisant les échecs de CI, sans désactiver ni affaiblir de test :
+- **Canal de communication (S13)** : sous Windows, une instance de pipe dont le client partait avant l'acceptation n'était pas libérée ;
+  les fuites atteignaient le plafond (32) et plus aucun client ne pouvait se connecter. Sous Linux, le socket d'écoute se fermait
+  quand la dernière instance était libérée, et le client suivant voyait sa connexion réinitialisée. Corrigé dans `PipeServer` :
+  instance libérée en cas d'échec, et l'instance suivante est créée avant de servir la connexion acceptée.
+  En production, ce défaut aurait pu rendre le moteur injoignable après des déconnexions brutales.
+- **Test de scripts** : il attendait un statut « queued » inexistant (le statut initial est « pending ») et pouvait conclure trop tôt.
+- **Test du limiteur REST** : il mesurait des délais avec l'horloge réelle ; une machine lente le faisait échouer. L'horloge est désormais injectable et figée dans le test.
 
 ### 4.2 Sécurité
 - Aucun secret dans le dépôt (gitleaks) ; tests avec secrets générés à l'exécution.
