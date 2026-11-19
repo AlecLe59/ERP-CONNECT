@@ -28,7 +28,7 @@ jobs:
           $has = Test-Path "ErpConnect.slnx"
           "present=$($has.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           if (-not $has) { Write-Host "Aucune solution .NET pour l'instant : étapes ignorées." }
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         if: steps.detect.outputs.present == 'true'
         with:
           global-json-file: global.json
