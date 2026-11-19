@@ -52,7 +52,10 @@ public sealed record FieldMapDto(string Target, string Expression);
 /// <summary>mode : identity | explicit.</summary>
 public sealed record MappingSpecDto(string Mode, FieldMapDto[] Fields);
 
-public sealed record FlowDefinitionDto(SourceSpecDto Source, TargetSpecDto Target, MappingSpecDto Mapping, int BatchSize, int MaxRejects);
+/// <summary>Bloc de transformation : filter, set, rename, remove ou validate.</summary>
+public sealed record StepSpecDto(string Kind, string? Field, string? Expression, string? Target, string? Message);
+
+public sealed record FlowDefinitionDto(SourceSpecDto Source, TargetSpecDto Target, MappingSpecDto Mapping, int BatchSize, int MaxRejects, StepSpecDto[]? Steps = null);
 
 public sealed record FlowSummaryDto(string Id, string Name, string Description, long DraftVersion, long? PublishedVersion, DateTimeOffset UpdatedAt, string UpdatedBy);
 
@@ -102,3 +105,21 @@ public sealed record RunDetailResult(RunDto Run, RunRejectDto[] Rejects, RunLogD
 public sealed record RunCancelResult(bool Accepted);
 
 public sealed record RunChangedPayload(string RunId, string FlowId, string Status);
+
+/// <summary>Aperçu d'une définition (même non enregistrée) sur un échantillon de la source, sans écriture.</summary>
+public sealed record FlowPreviewParams(FlowDefinitionDto Definition, int Limit);
+
+/// <summary>Sort : output, filtered ou rejected.</summary>
+public sealed record PreviewRowDto(string SourceJson, string? OutputJson, string Fate, string? Reason);
+
+public sealed record FlowPreviewResult(PreviewRowDto[] Rows, string[] SourceFields);
+
+public sealed record FunctionDto(string Name, string Signature, string Help);
+
+public sealed record FunctionsListResult(FunctionDto[] Functions);
+
+public sealed record ConnectionDiscoverParams(string Id, string? Resource);
+
+public sealed record DiscoveredFieldDto(string Name, string Type, DiscoveredFieldDto[] Children);
+
+public sealed record ConnectionDiscoverResult(string[] Resources, DiscoveredFieldDto[] Fields);

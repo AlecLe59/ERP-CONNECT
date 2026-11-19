@@ -119,6 +119,15 @@ public static class RpcMethods
     public static readonly RpcMethodDescriptor RunsCancel = new(
         "runs.cancel", PermissionMode.Required, "runs.cancel", typeof(IdParams), typeof(RunCancelResult), "Annuler (après le lot en cours)");
 
+    public static readonly RpcMethodDescriptor ConnectionsDiscover = new(
+        "connections.discover", PermissionMode.Required, "connections.use", typeof(ConnectionDiscoverParams), typeof(ConnectionDiscoverResult), "Ressources et champs d'une connexion");
+
+    public static readonly RpcMethodDescriptor FlowsPreview = new(
+        "flows.preview", PermissionMode.Required, "flows.edit", typeof(FlowPreviewParams), typeof(FlowPreviewResult), "Aperçu d'une transformation sur un échantillon, sans écriture");
+
+    public static readonly RpcMethodDescriptor FlowsFunctions = new(
+        "flows.functions", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(FunctionsListResult), "Fonctions du langage d'expressions");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
@@ -126,6 +135,7 @@ public static class RpcMethods
         EventsSubscribe, EventsUnsubscribe,
         ConnectorsList, ConnectionsList, ConnectionsSave, ConnectionsDelete, ConnectionsTest,
         FlowsList, FlowsGet, FlowsSave, FlowsPublish, RunsStart, RunsList, RunsGet, RunsCancel,
+        ConnectionsDiscover, FlowsPreview, FlowsFunctions,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));

@@ -1,7 +1,7 @@
 // Fichier généré par ErpConnect.Tools.ContractGen à partir de ErpConnect.Contracts.
 // NE PAS MODIFIER À LA MAIN : relancer `dotnet run --project tools/ErpConnect.Tools.ContractGen`.
 
-export const PROTOCOL_VERSION = "1.1";
+export const PROTOCOL_VERSION = "1.2";
 
 export interface AssignRoleParams {
   principalSid: string;
@@ -62,6 +62,16 @@ export interface ConfigFieldDto {
   help: string | null;
 }
 
+export interface ConnectionDiscoverParams {
+  id: string;
+  resource: string | null;
+}
+
+export interface ConnectionDiscoverResult {
+  resources: string[];
+  fields: DiscoveredFieldDto[];
+}
+
 export interface ConnectionDto {
   id: string;
   name: string;
@@ -117,6 +127,12 @@ export interface DeleteResult {
   deleted: boolean;
 }
 
+export interface DiscoveredFieldDto {
+  name: string;
+  type: string;
+  children: DiscoveredFieldDto[];
+}
+
 export interface EmptyParams {
 }
 
@@ -149,6 +165,7 @@ export interface FlowDefinitionDto {
   mapping: MappingSpecDto;
   batchSize: number;
   maxRejects: number;
+  steps: StepSpecDto[] | null;
 }
 
 export interface FlowDetailResult {
@@ -163,6 +180,16 @@ export interface FlowDetailResult {
 export interface FlowGetParams {
   id: string;
   version: number | null;
+}
+
+export interface FlowPreviewParams {
+  definition: FlowDefinitionDto;
+  limit: number;
+}
+
+export interface FlowPreviewResult {
+  rows: PreviewRowDto[];
+  sourceFields: string[];
 }
 
 export interface FlowPublishParams {
@@ -197,6 +224,16 @@ export interface FormatDto {
   options: ConfigFieldDto[];
 }
 
+export interface FunctionDto {
+  name: string;
+  signature: string;
+  help: string;
+}
+
+export interface FunctionsListResult {
+  functions: FunctionDto[];
+}
+
 export interface HelloParams {
   clientName: string;
   clientVersion: string;
@@ -229,6 +266,13 @@ export interface ListAssignmentsResult {
 export interface MappingSpecDto {
   mode: string;
   fields: FieldMapDto[];
+}
+
+export interface PreviewRowDto {
+  sourceJson: string;
+  outputJson: string | null;
+  fate: string;
+  reason: string | null;
 }
 
 export interface ResolvePrincipalParams {
@@ -369,6 +413,14 @@ export interface SourceSpecDto {
   options: KeyValueDto[];
 }
 
+export interface StepSpecDto {
+  kind: string;
+  field: string | null;
+  expression: string | null;
+  target: string | null;
+  message: string | null;
+}
+
 export interface SystemInfoResult {
   installationId: string;
   machineName: string;
@@ -432,6 +484,9 @@ export interface RpcMethodMap {
   "runs.list": { params: RunsListParams; result: RunsListResult };
   "runs.get": { params: IdParams; result: RunDetailResult };
   "runs.cancel": { params: IdParams; result: RunCancelResult };
+  "connections.discover": { params: ConnectionDiscoverParams; result: ConnectionDiscoverResult };
+  "flows.preview": { params: FlowPreviewParams; result: FlowPreviewResult };
+  "flows.functions": { params: EmptyParams; result: FunctionsListResult };
 }
 
 export type RpcMethodName = keyof RpcMethodMap;
@@ -473,6 +528,9 @@ export const METHOD_PERMISSIONS: Record<RpcMethodName, string | null> = {
   "runs.list": "flows.read",
   "runs.get": "flows.read",
   "runs.cancel": "runs.cancel",
+  "connections.discover": "connections.use",
+  "flows.preview": "flows.edit",
+  "flows.functions": "flows.read",
 };
 
 export const RPC_ERROR_CODES = {

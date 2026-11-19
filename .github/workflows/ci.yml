@@ -47,7 +47,7 @@ jobs:
       - name: Tests
         if: steps.detect.outputs.present == 'true'
         # Les tests SFTP exigent un serveur OpenSSH local : ils tournent dans le job Linux.
-        run: dotnet test ErpConnect.slnx -c Release --no-build --filter "Category!=Sftp" --logger trx --results-directory TestResults
+        run: dotnet test ErpConnect.slnx -c Release --no-build --filter "Category!=Sftp&Category!=Ftp" --logger trx --results-directory TestResults
       - name: Paquets vulnérables
         if: steps.detect.outputs.present == 'true'
         shell: pwsh
@@ -74,9 +74,14 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y openssh-server
           sudo mkdir -p /run/sshd
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Serveur FTPS pour les tests FTP (pyftpdlib, TLS obligatoire)
+        run: python3 -m pip install pyftpdlib==2.2.0 pyopenssl==26.4.0
       - run: dotnet restore ErpConnect.slnx --locked-mode
       - run: dotnet build ErpConnect.slnx -c Release --no-restore
-      # Les tests SFTP lancent leur propre sshd sans privilège (port local aléatoire, clés générées).
+      # Les tests SFTP et FTPS lancent leurs propres serveurs sans privilège (port local aléatoire, clés et mot de passe générés).
       - name: Tests
         run: dotnet test ErpConnect.slnx -c Release --no-build --logger trx --results-directory TestResults
       - uses: actions/upload-artifact@v4

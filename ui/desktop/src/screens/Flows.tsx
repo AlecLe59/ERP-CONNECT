@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ConnectionDto, FieldMapDto, FlowDefinitionDto, FlowSummaryDto, FormatDto, KeyValueDto } from "@contracts";
+import type { ConnectionDto, FieldMapDto, FlowDefinitionDto, FlowPreviewResult, FlowSummaryDto, FormatDto, KeyValueDto, StepSpecDto } from "@contracts";
 import { useEngine } from "../engine/EngineContext";
 import { ErrorMessage } from "../components/Feedback";
 import { RunDetail } from "./Runs";
@@ -13,6 +13,7 @@ export const EMPTY_DEFINITION: FlowDefinitionDto = {
   mapping: { mode: "identity", fields: [] },
   batchSize: 1000,
   maxRejects: 1000,
+  steps: [],
 };
 
 export function getOption(options: KeyValueDto[], key: string) {
@@ -68,6 +69,20 @@ function EndpointEditor({ title, side, value, onChange, connections, formats, co
               {formats.map((f) => <option key={f.id} value={f.id}>{f.id.toUpperCase()}</option>)}
             </select>
           </label>
+          <label>
+            Archive
+            <select value={getOption(value.options, "archive") || "none"} onChange={(e) => onChange({ ...value, options: setOption(value.options, "archive", e.target.value === "none" ? "" : e.target.value) })}>
+              <option value="none">Aucune</option>
+              <option value="zip">ZIP</option>
+            </select>
+          </label>
+          {getOption(value.options, "archive") === "zip" && (
+            <label>
+              {side === "source" ? "Entrées lues (motif, ex. *.csv)" : "Nom de l'entrée dans l'archive"}
+              <input value={getOption(value.options, side === "source" ? "entryPattern" : "entryName")}
+                onChange={(e) => onChange({ ...value, options: setOption(value.options, side === "source" ? "entryPattern" : "entryName", e.target.value) })} />
+            </label>
+          )}
           {format?.options.map((o) => (
             <label key={o.name}>
               {o.label}
@@ -135,6 +150,88 @@ export function MappingEditor({ fields, onChange }: { fields: FieldMapDto[]; onC
   );
 }
 
+const STEP_KINDS: { kind: string; label: string }[] = [
+  { kind: "filter", label: "Filtrer (garder si vrai)" },
+  { kind: "set", label: "Calculer un champ" },
+  { kind: "rename", label: "Renommer un champ" },
+  { kind: "remove", label: "Supprimer des champs" },
+  { kind: "validate", label: "Contrôler (rejeter si faux)" },
+];
+
+/** Blocs de transformation appliqués dans l'ordre, avant la correspondance. */
+export function StepsEditor({ steps, onChange }: { steps: StepSpecDto[]; onChange: (s: StepSpecDto[]) => void }) {
+  const patch = (i: number, p: Partial<StepSpecDto>) => onChange(steps.map((x, j) => (j === i ? { ...x, ...p } : x)));
+  const move = (i: number, d: number) => {
+    const next = [...steps];
+    const [item] = next.splice(i, 1);
+    if (item) next.splice(i + d, 0, item);
+    onChange(next);
+  };
+  return (
+    <div>
+      <ol className="steps">
+        {steps.map((s, i) => (
+          <li key={i}>
+            <select aria-label={`Type de bloc ${i + 1}`} value={s.kind} onChange={(e) => patch(i, { kind: e.target.value })}>
+              {STEP_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
+            </select>
+            {(s.kind === "set" || s.kind === "rename" || s.kind === "remove") && (
+              <input aria-label={`Champ ${i + 1}`} placeholder={s.kind === "remove" ? "champ1, champ2" : "champ"} value={s.field ?? ""} onChange={(e) => patch(i, { field: e.target.value })} />
+            )}
+            {s.kind === "rename" && <input aria-label={`Nouveau nom ${i + 1}`} value={s.target ?? ""} onChange={(e) => patch(i, { target: e.target.value })} />}
+            {(s.kind === "filter" || s.kind === "set" || s.kind === "validate") && (
+              <input aria-label={`Expression du bloc ${i + 1}`} value={s.expression ?? ""} onChange={(e) => patch(i, { expression: e.target.value })} />
+            )}
+            {s.kind === "validate" && <input aria-label={`Motif de rejet ${i + 1}`} value={s.message ?? ""} onChange={(e) => patch(i, { message: e.target.value })} />}
+            <button type="button" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Monter le bloc ${i + 1}`}>↑</button>
+            <button type="button" disabled={i === steps.length - 1} onClick={() => move(i, 1)} aria-label={`Descendre le bloc ${i + 1}`}>↓</button>
+            <button type="button" onClick={() => onChange(steps.filter((_, j) => j !== i))}>Retirer</button>
+          </li>
+        ))}
+      </ol>
+      <button type="button" onClick={() => onChange([...steps, { kind: "filter", field: null, expression: "", target: null, message: null }])}>Ajouter un bloc</button>
+    </div>
+  );
+}
+
+const FATE_LABEL: Record<string, string> = { output: "Transmis", filtered: "Filtré", rejected: "Rejeté" };
+
+/** Aperçu sur un échantillon de la source : rien n'est écrit dans la cible. */
+export function PreviewPanel({ result }: { result: FlowPreviewResult }) {
+  return (
+    <section aria-label="Aperçu" className="preview">
+      <p>Champs source : {result.sourceFields.length > 0 ? result.sourceFields.map((f) => <code key={f}>[{f}]</code>) : "aucun"}</p>
+      <table>
+        <thead><tr><th>#</th><th>Résultat</th><th>Source</th><th>Sortie ou motif</th></tr></thead>
+        <tbody>
+          {result.rows.map((r, i) => (
+            <tr key={i} className={r.fate}>
+              <td>{i + 1}</td>
+              <td>{FATE_LABEL[r.fate] ?? r.fate}</td>
+              <td><code>{r.sourceJson}</code></td>
+              <td>{r.fate === "output" ? <code>{r.outputJson}</code> : r.reason ?? ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {result.rows.length === 0 && <p>La source ne contient aucun enregistrement.</p>}
+    </section>
+  );
+}
+
+function FunctionHelp() {
+  const { call } = useEngine();
+  const [open, setOpen] = useState(false);
+  const functions = useQuery({ queryKey: ["flows.functions"], queryFn: () => call("flows.functions"), enabled: open });
+  return (
+    <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+      <summary>Fonctions disponibles</summary>
+      <p>Champs : <code>[nom]</code> ou <code>source.client.ville</code>. Texte : <code>'l''été'</code>. Opérateurs : + - * / % &amp; = &lt;&gt; &lt; &lt;= &gt; &gt;= and or not.</p>
+      <ul>{functions.data?.functions.map((f) => <li key={f.name}><code>{f.signature}</code> {f.help}</li>)}</ul>
+    </details>
+  );
+}
+
 function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (saved: FlowSummaryDto | null) => void }) {
   const { call } = useEngine();
   const connections = useQuery({ queryKey: ["connections.list"], queryFn: () => call("connections.list") });
@@ -148,13 +245,15 @@ function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (sa
   const [description, setDescription] = useState(flow?.description ?? "");
   const [def, setDef] = useState<FlowDefinitionDto | null>(flow ? null : EMPTY_DEFINITION);
   const definition = def ?? loaded.data?.definition ?? null;
+  const preview = useMutation({ mutationFn: (d: FlowDefinitionDto) => call("flows.preview", { definition: d, limit: 20 }) });
   const save = useMutation({
     mutationFn: (d: FlowDefinitionDto) => call("flows.save", { id: flow?.id ?? null, name, description, definition: d, expectedDraftVersion: flow?.draftVersion ?? 0 }),
     onSuccess: (saved) => onDone(saved),
   });
   const list = connections.data?.connections ?? [];
   const connectorOf = (id: string) => list.find((c) => c.id === id)?.connectorId;
-  const fieldErrors = save.error && "fields" in save.error ? (save.error as { fields: { field: string; message: string }[] }).fields : [];
+  const failure = save.error ?? preview.error;
+  const fieldErrors = failure && "fields" in failure ? (failure as { fields: { field: string; message: string }[] }).fields : [];
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (definition) save.mutate(definition);
@@ -171,7 +270,9 @@ function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (sa
         <EndpointEditor title="Source" side="source" value={definition.source} connections={list} formats={connectors.data?.formats ?? []} connectorOf={connectorOf}
           onChange={(v) => update({ source: { connectionId: v.connectionId, resource: v.resource, options: v.options } })} />
         <fieldset className="zone">
-          <legend>Correspondance</legend>
+          <legend>Transformation</legend>
+          <StepsEditor steps={definition.steps ?? []} onChange={(steps) => update({ steps })} />
+          <h3>Correspondance</h3>
           <label>
             Mode
             <select value={definition.mapping.mode} onChange={(e) => update({ mapping: { ...definition.mapping, mode: e.target.value } })}>
@@ -182,6 +283,7 @@ function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (sa
           {definition.mapping.mode === "explicit" && (
             <MappingEditor fields={definition.mapping.fields} onChange={(fields) => update({ mapping: { ...definition.mapping, fields } })} />
           )}
+          <FunctionHelp />
           <label>
             Taille des lots
             <input inputMode="numeric" value={definition.batchSize} onChange={(e) => update({ batchSize: Number(e.target.value) || 0 })} />
@@ -195,9 +297,11 @@ function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (sa
           {fieldErrors.map((f) => <li key={f.field + f.message}>{f.field} : {f.message}</li>)}
         </ul>
       )}
-      {fieldErrors.length === 0 && <ErrorMessage error={save.error ?? loaded.error} />}
+      {fieldErrors.length === 0 && <ErrorMessage error={failure ?? loaded.error} />}
+      {preview.data && <PreviewPanel result={preview.data} />}
       <div className="actions">
         <button type="button" onClick={() => onDone(null)}>Annuler</button>
+        <button type="button" disabled={preview.isPending || !definition.source.connectionId} onClick={() => preview.mutate(definition)}>Aperçu (20 lignes)</button>
         <button type="submit" disabled={save.isPending}>Enregistrer</button>
       </div>
     </form>

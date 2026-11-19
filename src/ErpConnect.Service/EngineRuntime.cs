@@ -64,6 +64,8 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public ConnectionService Connections { get; private set; } = null!;
 
+    public PreviewService Preview { get; private set; } = null!;
+
     public FlowService Flows { get; private set; } = null!;
 
     public RunService Runs { get; private set; } = null!;
@@ -114,6 +116,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
         var connections = new ConnectionRepository(Config);
         var flows = new FlowRepository(Config);
         Connections = new ConnectionService(connections, flows, _vault, _audit, Clock, ConnectorCatalog);
+        Preview = new PreviewService(Connections);
         Flows = new FlowService(flows, connections, _audit, Clock);
         Runs = new RunService(new RunRepository(RunsDb), Flows, Connections, _audit, Clock, Events, RunOptions);
         await Runs.RecoverInterruptedAsync(ct).ConfigureAwait(false);

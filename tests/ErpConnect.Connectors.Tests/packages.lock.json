@@ -137,13 +137,20 @@
       "erpconnect.connectors": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.2.0, )",
+          "ErpConnect.Connectors.Sdk": "[0.4.0, )",
+          "FluentFTP": "[55.1.0, )",
           "MiniExcel": "[1.47.1, )",
           "SSH.NET": "[2026.0.1, )"
         }
       },
       "erpconnect.connectors.sdk": {
         "type": "Project"
+      },
+      "FluentFTP": {
+        "type": "CentralTransitive",
+        "requested": "[55.1.0, )",
+        "resolved": "55.1.0",
+        "contentHash": "RXA6WEaziJiSt/lrOxbpxfkOyTY1YaeQiCKzsVoQQxEwcoI0dtoTzGiqS47mrqq3zBuETMwaVjI7FLTCcJC80w=="
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "CentralTransitive",

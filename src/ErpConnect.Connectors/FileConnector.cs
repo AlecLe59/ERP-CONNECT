@@ -18,6 +18,9 @@ public abstract class FileConnector : IConnector
     public static IReadOnlyList<ConfigField> FormatSelector { get; } =
     [
         new("format", "Format", ConfigFieldType.Choice, Required: true, Choices: FormatRegistry.All.Select(f => f.Id).ToArray()),
+        new("archive", "Archive", ConfigFieldType.Choice, Default: "none", Choices: ["none", "zip"]),
+        new("entryPattern", "Entrées lues dans l'archive", ConfigFieldType.Text, Default: "*"),
+        new("entryName", "Nom de l'entrée écrite dans l'archive", ConfigFieldType.Text),
     ];
 
     public abstract ConnectorManifest Manifest { get; }
@@ -109,7 +112,7 @@ public abstract class FileConnector : IConnector
     }
 
     internal static Dictionary<string, string> FormatOptions(IReadOnlyDictionary<string, string>? options) =>
-        options?.Where(kv => kv.Key != "format").ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
+        options?.Where(kv => kv.Key is not ("format" or "archive" or "entryPattern" or "entryName")).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
 
     public static string ExpandTarget(string resource, string? runId, DateTimeOffset now)
     {
@@ -131,18 +134,64 @@ public abstract class FileConnector : IConnector
             _request = request;
         }
 
+        private sealed record Item(string Name, Func<CancellationToken, Task<Stream>> Open);
+
+        /// <summary>Fichiers à lire ; avec archive=zip, chaque entrée correspondante d'archive devient un élément « archive.zip!entrée ».</summary>
+        private async Task<List<Item>> ItemsAsync(CancellationToken ct)
+        {
+            var files = await _transport.ListAsync(_request.Resource, ct).ConfigureAwait(false);
+            if (_request.Option("archive") != "zip")
+            {
+                return files.Select(f => new Item(f.Name, t => _transport.OpenReadAsync(f.Name, t))).ToList();
+            }
+
+            var pattern = _request.Option("entryPattern") is { Length: > 0 } p ? p : "*";
+            var items = new List<Item>();
+            foreach (var f in files)
+            {
+                var stream = await ZipArchives.SeekableAsync(await _transport.OpenReadAsync(f.Name, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+                await using (stream.ConfigureAwait(false))
+                {
+                    using var zip = OpenZip(stream, f.Name);
+                    foreach (var entry in ZipArchives.CheckedEntries(zip, pattern))
+                    {
+                        var archive = f.Name;
+                        items.Add(new Item($"{archive}!{entry}", async t =>
+                        {
+                            var s = await ZipArchives.SeekableAsync(await _transport.OpenReadAsync(archive, t).ConfigureAwait(false), t).ConfigureAwait(false);
+                            return ZipArchives.OpenEntry(OpenZip(s, archive), s, entry);
+                        }));
+                    }
+                }
+            }
+
+            return items;
+        }
+
+        private static System.IO.Compression.ZipArchive OpenZip(Stream s, string name)
+        {
+            try
+            {
+                return new System.IO.Compression.ZipArchive(s, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new ConnectorException(ErrorKind.Permanent, $"Archive ZIP illisible : {name}.", ex);
+            }
+        }
+
         public async IAsyncEnumerable<RecordBatch> ReadAsync(string? cursor, [EnumeratorCancellation] CancellationToken ct)
         {
             var format = FormatRegistry.Get(_request.Option("format"));
             var options = FormatOptions(_request.Options);
-            var files = await _transport.ListAsync(_request.Resource, ct).ConfigureAwait(false);
-            var (startFile, skip) = ParseCursor(cursor, files);
+            var files = await ItemsAsync(ct).ConfigureAwait(false);
+            var (startFile, skip) = ParseCursor(cursor, files.Select(f => f.Name).ToList());
             var batchSize = Math.Clamp(_request.BatchSize, 1, 100_000);
             for (var fi = startFile; fi < files.Count; fi++)
             {
                 var batch = new List<Record>(batchSize);
                 long index = 0;
-                var stream = await _transport.OpenReadAsync(files[fi].Name, ct).ConfigureAwait(false);
+                var stream = await files[fi].Open(ct).ConfigureAwait(false);
                 await using (stream.ConfigureAwait(false))
                 {
                     await foreach (var record in format.ReadAsync(stream, options, ct).ConfigureAwait(false))
@@ -171,7 +220,7 @@ public abstract class FileConnector : IConnector
 
         private static string Cursor(int file, long records, string name) => string.Create(CultureInfo.InvariantCulture, $"{file}:{records}:{name}");
 
-        private static (int File, long Skip) ParseCursor(string? cursor, IReadOnlyList<RemoteFile> files)
+        private static (int File, long Skip) ParseCursor(string? cursor, IReadOnlyList<string> files)
         {
             if (string.IsNullOrEmpty(cursor))
             {
@@ -184,7 +233,7 @@ public abstract class FileConnector : IConnector
                 throw new ConnectorException(ErrorKind.Permanent, "Point de reprise illisible.");
             }
 
-            if (f < files.Count && !string.Equals(files[f].Name, parts[2], StringComparison.Ordinal))
+            if (f < files.Count && !string.Equals(files[f], parts[2], StringComparison.Ordinal))
             {
                 throw new ConnectorException(ErrorKind.Permanent, $"Les fichiers source ont changé depuis le point de reprise (attendu {parts[2]}).");
             }
@@ -215,8 +264,20 @@ public abstract class FileConnector : IConnector
             var format = FormatRegistry.Get(_request.Option("format"));
             var options = FormatOptions(_request.Options);
             var target = ExpandTarget(_request.Resource, _request.RunId, DateTimeOffset.UtcNow);
-            return _transport.WriteAtomicAsync(target, _request.Mode, async (stream, ct) =>
+            var zip = _request.Option("archive") == "zip";
+            return _transport.WriteAtomicAsync(target, _request.Mode, async (output, ct) =>
             {
+                System.IO.Compression.ZipArchive? archive = null;
+                var stream = output;
+                if (zip)
+                {
+                    archive = new System.IO.Compression.ZipArchive(output, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true);
+                    var entryName = _request.Option("entryName") is { Length: > 0 } en ? SafePath.Normalize(en) : Path.GetFileNameWithoutExtension(target) + "." + format.Id;
+                    stream = await archive.CreateEntry(entryName, System.IO.Compression.CompressionLevel.Optimal).OpenAsync(ct).ConfigureAwait(false);
+                }
+
+                using var archiveScope = archive; // libéré en dernier : l'archive écrit son répertoire central
+                await using var entryScope = zip ? stream : null; // l'entrée se ferme avant l'archive
                 var writer = format.CreateWriter(stream, options);
                 await using (writer.ConfigureAwait(false))
                 {
@@ -309,6 +370,34 @@ public sealed class LocalFolderConnector : FileConnector
     {
         ArgumentNullException.ThrowIfNull(settings);
         return new LocalFolderTransport(settings.Require("rootPath"));
+    }
+}
+
+public sealed class FtpConnector : FileConnector
+{
+    public override ConnectorManifest Manifest { get; } = new(
+        "file.ftp", "Serveur FTP / FTPS", "1.0.0",
+        ConnectorCapabilities.Read | ConnectorCapabilities.Write | ConnectorCapabilities.Discover | ConnectorCapabilities.FileTransport,
+        [
+            new("host", "Hôte", ConfigFieldType.Text, Required: true),
+            new("port", "Port", ConfigFieldType.Number, Default: "21"),
+            new("username", "Utilisateur", ConfigFieldType.Text, Required: true),
+            new("password", "Mot de passe", ConfigFieldType.Text, Secret: true),
+            new("encryption", "Chiffrement", ConfigFieldType.Choice, Default: "explicit", Choices: ["explicit", "implicit", "none"]),
+            new("allowPlainFtp", "Autoriser le FTP non chiffré", ConfigFieldType.Boolean, Default: "false"),
+            new("certificateFingerprint", "Empreinte SHA-256 du certificat (épinglage)", ConfigFieldType.Text, Help: "Pour un certificat auto-signé. Vide = validation Windows."),
+            new("rootPath", "Dossier racine distant", ConfigFieldType.Text, Default: "/"),
+            new("timeoutSeconds", "Délai (s)", ConfigFieldType.Number, Default: "30"),
+        ],
+        "Fichiers sur un serveur FTP, FTPS explicite ou implicite.");
+
+    public override IFileTransport CreateTransport(ConnectorSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return new FtpTransport(new FtpOptions(
+            settings.Require("host"), settings.GetInt("port", 21), settings.Require("username"), settings.GetSecret("password"),
+            settings.Get("encryption") ?? "explicit", settings.GetBool("allowPlainFtp"), settings.Get("certificateFingerprint"),
+            settings.Get("rootPath") ?? "/", TimeSpan.FromSeconds(Math.Clamp(settings.GetInt("timeoutSeconds", 30), 1, 600))));
     }
 }
 

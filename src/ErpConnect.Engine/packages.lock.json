@@ -50,7 +50,8 @@
       "erpconnect.connectors": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.3.0, )",
+          "ErpConnect.Connectors.Sdk": "[0.4.0, )",
+          "FluentFTP": "[55.1.0, )",
           "MiniExcel": "[1.47.1, )",
           "SSH.NET": "[2026.0.1, )"
         }
@@ -64,22 +65,28 @@
       "erpconnect.flows": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.3.0, )"
+          "ErpConnect.Connectors.Sdk": "[0.4.0, )"
         }
       },
       "erpconnect.security": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.3.0, )",
+          "ErpConnect.Core": "[0.4.0, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.15, )"
         }
       },
       "erpconnect.storage": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.3.0, )",
+          "ErpConnect.Core": "[0.4.0, )",
           "Microsoft.Data.Sqlite": "[10.0.15, )"
         }
+      },
+      "FluentFTP": {
+        "type": "CentralTransitive",
+        "requested": "[55.1.0, )",
+        "resolved": "55.1.0",
+        "contentHash": "RXA6WEaziJiSt/lrOxbpxfkOyTY1YaeQiCKzsVoQQxEwcoI0dtoTzGiqS47mrqq3zBuETMwaVjI7FLTCcJC80w=="
       },
       "Microsoft.Data.Sqlite": {
         "type": "CentralTransitive",

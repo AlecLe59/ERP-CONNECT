@@ -432,5 +432,5 @@ public sealed class RestConnector : IConnector
 
 public static class ConnectorRegistry
 {
-    public static IReadOnlyList<IConnector> CreateDefault() => [new LocalFolderConnector(), new SftpConnector(), new RestConnector()];
+    public static IReadOnlyList<IConnector> CreateDefault() => [new LocalFolderConnector(), new SftpConnector(), new FtpConnector(), new RestConnector()];
 }

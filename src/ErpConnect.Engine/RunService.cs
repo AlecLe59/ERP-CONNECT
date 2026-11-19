@@ -211,12 +211,12 @@ public sealed class RunService : IAsyncDisposable
 
         IConnector sourceConnector, targetConnector;
         ConnectorSettings sourceSettings, targetSettings;
-        RecordMapper mapper;
+        RecordPipeline pipeline;
         try
         {
             (sourceConnector, sourceSettings) = await _connections.ResolveAsync(def.Source.ConnectionId, ct).ConfigureAwait(false);
             (targetConnector, targetSettings) = await _connections.ResolveAsync(def.Target.ConnectionId, ct).ConfigureAwait(false);
-            mapper = RecordMapper.Compile(def.Mapping);
+            pipeline = RecordPipeline.Compile(def);
         }
         catch (Exception ex) when (ex is EngineException or FlowValidationException or ConnectorException)
         {
@@ -251,8 +251,12 @@ public sealed class RunService : IAsyncDisposable
                     var toWrite = new List<(int Index, Record Record, Record Source)>(batch.Records.Count);
                     for (var i = 0; i < batch.Records.Count; i++)
                     {
-                        var m = mapper.Map(batch.Records[i]);
-                        if (m.Output is null)
+                        var m = pipeline.Process(batch.Records[i]);
+                        if (m.Fate == RecordFate.Filtered)
+                        {
+                            skipped++;
+                        }
+                        else if (m.Output is null)
                         {
                             rejects.Add(Reject(run.Id, batchNo, i, "mapping", m.RejectReason!, batch.Records[i]));
                         }
@@ -308,7 +312,7 @@ public sealed class RunService : IAsyncDisposable
             return;
         }
 
-        var summary = $"{read} lu(s), {written} écrit(s), {rejected} rejeté(s).";
+        var summary = $"{read} lu(s), {written} écrit(s), {skipped} filtré(s), {rejected} rejeté(s).";
         if (cancelled)
         {
             await _runs.LogAsync(run.Id, _clock.UtcNow, "warning", $"Annulée après le lot {batchNo}. {summary}", ct).ConfigureAwait(false);

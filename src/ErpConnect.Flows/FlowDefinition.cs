@@ -18,9 +18,18 @@ public sealed record FieldMap(string Target, string Expression);
 /// <summary>mode : identity (copie telle quelle) | explicit (seuls les champs listés).</summary>
 public sealed record MappingSpec(string Mode, FieldMap[] Fields);
 
+/// <summary>
+/// Bloc de transformation appliqué avant la correspondance, dans l'ordre.
+/// kind : filter (expression booléenne, faux = enregistrement écarté), set (field = expression),
+/// rename (field → target), remove (field, liste séparée par des virgules), validate (expression fausse = rejet avec message).
+/// </summary>
+public sealed record StepSpec(string Kind, string? Field = null, string? Expression = null, string? Target = null, string? Message = null);
+
 /// <summary>Définition versionnée d'un flux, stockée en JSON (camelCase).</summary>
-public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, MappingSpec Mapping, int BatchSize = 1000, int MaxRejects = 1000)
+public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, MappingSpec Mapping, int BatchSize = 1000, int MaxRejects = 1000, StepSpec[]? Steps = null)
 {
+    public IReadOnlyList<StepSpec> AllSteps => Steps ?? [];
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         RespectNullableAnnotations = true,
@@ -79,6 +88,16 @@ public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, Mappin
         if (MaxRejects is < 1 or > 1_000_000)
         {
             errors.Add(new("maxRejects", "Entre 1 et 1 000 000."));
+        }
+
+        if (AllSteps.Count > 100)
+        {
+            errors.Add(new("steps", "100 blocs maximum."));
+        }
+
+        for (var i = 0; i < AllSteps.Count; i++)
+        {
+            errors.AddRange(RecordPipeline.ValidateStep(AllSteps[i]).Select(e => new FlowError($"steps[{i}].{e.Field}", e.Message)));
         }
 
         switch (Mapping.Mode)

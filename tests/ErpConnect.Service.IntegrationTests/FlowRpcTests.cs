@@ -61,7 +61,7 @@ public sealed class FlowRpcTests : IAsyncLifetime
         (await c.CallAsync("events.subscribe", new EventsSubscribeParams(["runs.changed"]))).Result();
 
         var connectors = (await c.CallAsync("connectors.list")).Result();
-        connectors["connectors"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["file.local", "file.sftp", "rest"]);
+        connectors["connectors"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["file.local", "file.sftp", "file.ftp", "rest"]);
         connectors["formats"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["csv", "json", "xml", "xlsx"]);
 
         (await c.CallAsync("connections.save", Local("src", input))).Result();
@@ -145,5 +145,49 @@ public sealed class FlowRpcTests : IAsyncLifetime
         badFlow.ErrorCode().ShouldBe(RpcErrorCodes.ValidationFailed);
         (await c.CallAsync("runs.list", new RunsListParams(null, "inconnu", 1, 10))).ErrorCode().ShouldBe(RpcErrorCodes.ValidationFailed);
         (await c.CallAsync("runs.get", new IdParams("absent"))).ErrorCode().ShouldBe(RpcErrorCodes.NotFound);
+    }
+
+    [Fact]
+    public async Task Design_methods_preview_discover_and_list_functions()
+    {
+        var input = Folder("in");
+        await File.WriteAllTextAsync(Path.Combine(input, "a.csv"), "id;nom\n1;A\n2;B\n3;C\n");
+        await using var c = await _engine.ConnectAsync(Identities.Admin);
+        (await c.CallAsync("connections.save", Local("src", input))).Result();
+        (await c.CallAsync("connections.save", Local("dst", Folder("out")))).Result();
+
+        var discovered = (await c.CallAsync("connections.discover", new ConnectionDiscoverParams("src", "*.csv"))).Result();
+        discovered["resources"]!.AsArray().Select(x => x!.GetValue<string>()).ShouldBe(["a.csv"]);
+
+        var functions = (await c.CallAsync("flows.functions")).Result()["functions"]!.AsArray();
+        functions.Select(f => f!["name"]!.GetValue<string>()).ShouldContain("padLeft");
+
+        var def = Csv2Json("src", "dst") with
+        {
+            Mapping = new MappingSpecDto("explicit", [new("label", "lower([nom])")]),
+            Steps = [new StepSpecDto("filter", null, "[id] <> '2'", null, null)],
+        };
+        var preview = (await c.CallAsync("flows.preview", new FlowPreviewParams(def, 10))).Result();
+        preview["rows"]!.AsArray().Select(r => r!["fate"]!.GetValue<string>()).ShouldBe(["output", "filtered", "output"]);
+        preview["rows"]![2]!["outputJson"]!.GetValue<string>().ShouldBe("{\"label\":\"c\"}");
+        Directory.GetFiles(Path.Combine(_dir.Path, "out")).ShouldBeEmpty();
+
+        var bad = def with { Steps = [new StepSpecDto("filter", null, "upper(", null, null)] };
+        (await c.CallAsync("flows.preview", new FlowPreviewParams(bad, 10))).ErrorCode().ShouldBe(RpcErrorCodes.ValidationFailed);
+    }
+
+    [Fact]
+    public async Task Steps_survive_a_save_and_get_round_trip()
+    {
+        await using var c = await _engine.ConnectAsync(Identities.Admin);
+        (await c.CallAsync("connections.save", Local("src", Folder("in")))).Result();
+        (await c.CallAsync("connections.save", Local("dst", Folder("out")))).Result();
+        var def = Csv2Json("src", "dst") with { Steps = [new StepSpecDto("validate", null, "len([id]) > 0", null, "id vide"), new StepSpecDto("rename", "nom", null, "name", null)] };
+        var saved = (await c.CallAsync("flows.save", new FlowSaveParams(null, "étapes", "", def, 0))).Result();
+        var got = (await c.CallAsync("flows.get", new FlowGetParams(saved["id"]!.GetValue<string>(), null))).Result();
+        var steps = got["definition"]!["steps"]!.AsArray();
+        steps.Count.ShouldBe(2);
+        steps[0]!["message"]!.GetValue<string>().ShouldBe("id vide");
+        steps[1]!["target"]!.GetValue<string>().ShouldBe("name");
     }
 }

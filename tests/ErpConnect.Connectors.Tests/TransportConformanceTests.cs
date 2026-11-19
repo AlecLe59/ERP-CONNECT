@@ -129,3 +129,18 @@ public sealed class SftpConformance : TransportConformanceTests, IClassFixture<S
         return Task.FromResult<IFileTransport>(new SftpTransport(_server.Options(_server.DataPath + _root)));
     }
 }
+
+[Trait("Category", "Ftp")]
+public sealed class FtpsConformance : TransportConformanceTests, IClassFixture<FtpServerFixture>
+{
+    private readonly FtpServerFixture _server;
+    private readonly string _root = "conformance-" + Guid.NewGuid().ToString("N");
+
+    public FtpsConformance(FtpServerFixture server) => _server = server;
+
+    protected override Task<IFileTransport> CreateAsync()
+    {
+        Directory.CreateDirectory(Path.Combine(_server.DataPath, _root));
+        return Task.FromResult<IFileTransport>(new FtpTransport(_server.Options("/" + _root)));
+    }
+}

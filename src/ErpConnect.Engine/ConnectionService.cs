@@ -198,5 +198,26 @@ public sealed partial class ConnectionService
         return result;
     }
 
+    /// <summary>Découvre les ressources et les champs d'une connexion (délai 60 s).</summary>
+    public async Task<DataStructure> DiscoverAsync(string id, string? resource, CancellationToken ct)
+    {
+        var (connector, settings) = await ResolveAsync(id, ct).ConfigureAwait(false);
+        if (!connector.Manifest.Capabilities.HasFlag(ConnectorCapabilities.Discover))
+        {
+            throw new EngineException(EngineErrorKind.Validation, "Ce connecteur ne sait pas découvrir sa structure.", [new FieldError("id", "Découverte non prise en charge.")]);
+        }
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
+        try
+        {
+            return await connector.DiscoverAsync(settings, resource, timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new ConnectorException(ErrorKind.Transient, "Délai de 60 s dépassé pendant la découverte.");
+        }
+    }
+
     private static EngineException Validation(string field, string message) => new(EngineErrorKind.Validation, message, [new FieldError(field, message)]);
 }

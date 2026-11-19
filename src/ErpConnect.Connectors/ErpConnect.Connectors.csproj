@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="MiniExcel" />
     <PackageReference Include="SSH.NET" />
+    <PackageReference Include="FluentFTP" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ErpConnect.Connectors.Tests" />

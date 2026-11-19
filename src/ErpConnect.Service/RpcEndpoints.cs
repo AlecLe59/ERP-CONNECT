@@ -142,6 +142,7 @@ internal static class RpcEndpoints
         });
 
         RegisterFlows(dispatcher, runtime);
+        RegisterDesign(dispatcher, runtime);
     }
 
     private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -228,6 +229,29 @@ internal static class RpcEndpoints
         });
     }
 
+    private static void RegisterDesign(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<ConnectionDiscoverParams, ConnectionDiscoverResult>(RpcMethods.ConnectionsDiscover, async (_, p, ct) =>
+        {
+            var s = await Guard(() => runtime.Connections.DiscoverAsync(p.Id, p.Resource, ct)).ConfigureAwait(false);
+            return new ConnectionDiscoverResult(s.Resources.Take(1000).ToArray(), s.Fields.Select(ToDto).ToArray());
+        });
+
+        dispatcher.Register<FlowPreviewParams, FlowPreviewResult>(RpcMethods.FlowsPreview, async (_, p, ct) =>
+        {
+            var r = await Guard(() => runtime.Preview.PreviewAsync(FromDto(p.Definition), p.Limit, ct)).ConfigureAwait(false);
+            return new FlowPreviewResult(
+                r.Rows.Select(x => new PreviewRowDto(x.SourceJson, x.OutputJson, JsonNamingPolicy.CamelCase.ConvertName(x.Fate.ToString()), x.Reason)).ToArray(),
+                r.SourceFields.ToArray());
+        });
+
+        dispatcher.Register<EmptyParams, FunctionsListResult>(RpcMethods.FlowsFunctions, (_, _, _) => Task.FromResult(new FunctionsListResult(
+            ExpressionCompiler.FunctionCatalog.Select(f => new FunctionDto(f.Name, f.Signature, f.Help)).ToArray())));
+    }
+
+    private static DiscoveredFieldDto ToDto(ErpConnect.Connectors.Sdk.FieldInfo f) =>
+        new(f.Name, f.Type, f.Children?.Select(ToDto).ToArray() ?? []);
+
     internal static string StatusName(RunStatus s) => JsonNamingPolicy.CamelCase.ConvertName(s.ToString());
 
     private static RunStatus ParseStatus(string s) =>
@@ -255,13 +279,13 @@ internal static class RpcEndpoints
         new SourceSpecDto(d.Source.ConnectionId, d.Source.Resource, ToDto(d.Source.Options)),
         new TargetSpecDto(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, ToDto(d.Target.Options)),
         new MappingSpecDto(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMapDto(f.Target, f.Expression)).ToArray()),
-        d.BatchSize, d.MaxRejects);
+        d.BatchSize, d.MaxRejects, d.AllSteps.Select(s => new StepSpecDto(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray());
 
     internal static FlowDefinition FromDto(FlowDefinitionDto d) => new(
         new SourceSpec(d.Source.ConnectionId, d.Source.Resource, FromDto(d.Source.Options)),
         new TargetSpec(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, FromDto(d.Target.Options)),
         new MappingSpec(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMap(f.Target, f.Expression)).ToArray()),
-        d.BatchSize, d.MaxRejects);
+        d.BatchSize, d.MaxRejects, d.Steps is null or { Length: 0 } ? null : d.Steps.Select(s => new StepSpec(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray());
 
     private static List<RpcNotificationDescriptor> ValidateTopics(string[] topics)
     {
