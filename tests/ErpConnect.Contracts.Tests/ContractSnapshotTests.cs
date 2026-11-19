@@ -46,6 +46,7 @@ public class ContractSnapshotTests
             "flows.list", "flows.get", "flows.save", "flows.publish", "runs.start", "runs.list", "runs.get", "runs.cancel",
             "connections.discover", "flows.preview", "flows.functions",
             "runs.resume", "schedules.list", "schedules.save", "schedules.delete", "alerts.list", "alerts.acknowledge",
+            "scripts.test", "scripts.limits",
         ]);
         RpcMethods.All.Select(m => m.Name).ShouldBeUnique();
     }

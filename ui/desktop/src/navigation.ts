@@ -19,7 +19,7 @@ export const MENU: MenuItem[] = [
   { id: "runs", label: "Exécutions", permission: "flows.read", availableIn: null },
   { id: "schedules", label: "Planification", permission: "flows.read", availableIn: null },
   { id: "monitoring", label: "Supervision", permission: "dashboard.read", availableIn: null },
-  { id: "scripts", label: "Scripts", permission: "flows.edit", availableIn: 6 },
+  { id: "scripts", label: "Scripts", permission: "flows.edit", availableIn: null },
   { id: "users", label: "Utilisateurs et droits", permission: "users.read", availableIn: null },
   { id: "audit", label: "Journal d'audit", permission: "audit.read", availableIn: null },
   { id: "license", label: "Licence", permission: "license.manage", availableIn: 7 },

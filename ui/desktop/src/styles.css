@@ -47,6 +47,8 @@ input, select { display: block; margin-top: 4px; font: inherit; padding: 4px 6px
 .ok { color: #1b6e20; }
 .link { background: none; border: none; color: #1f4fbf; text-decoration: underline; cursor: pointer; padding: 0; }
 textarea.secret { font-family: ui-monospace, monospace; width: 100%; }
+textarea.code, pre.code { font-family: ui-monospace, monospace; width: 100%; tab-size: 2; }
+pre.code { background: var(--surface-2, #f4f4f4); padding: 8px; overflow-x: auto; }
 label.inline { display: flex; gap: 0.5rem; align-items: center; }
 @media (max-width: 1100px) { .zones { grid-template-columns: 1fr; } }
 

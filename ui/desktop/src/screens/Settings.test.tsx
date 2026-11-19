@@ -12,6 +12,19 @@ function engineWithSettings(perms: string[]) {
 }
 
 describe("Settings", () => {
+  it("active les scripts, désactivés par défaut", async () => {
+    const engine = engineWithSettings(ALL_PERMISSIONS);
+    engine.handlers["settings.update"] = (p) => ({ settings: (p as { settings: unknown }).settings, version: 4, updatedAt: "2026-11-19T11:00:00Z", updatedBy: "PC\\alice" });
+    renderWithEngine(<Settings />, engine);
+    const box = await screen.findByLabelText(/Autoriser les scripts/);
+    expect(box).not.toBeChecked();
+    await userEvent.click(box);
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(await screen.findByText(/version 4/)).toBeInTheDocument();
+    const sent = engine.calls.find((c) => c.method === "settings.update")!.params as { settings: { scriptsEnabled: boolean } };
+    expect(sent.settings.scriptsEnabled).toBe(true);
+  });
+
   it("envoie la version attendue et affiche le succès", async () => {
     const engine = engineWithSettings(ALL_PERMISSIONS);
     engine.handlers["settings.update"] = (p) => ({ settings: (p as { settings: unknown }).settings, version: 4, updatedAt: "2026-11-19T11:00:00Z", updatedBy: "PC\\alice" });

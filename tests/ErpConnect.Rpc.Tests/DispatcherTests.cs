@@ -65,7 +65,7 @@ public class DispatcherTests
     public async Task Hello_returns_identity_and_effective_permissions()
     {
         var s = new RpcSession(Identities.Admin);
-        var r = await Send(s, """{"jsonrpc":"2.0","id":"a","method":"session.hello","params":{"clientName":"t","clientVersion":"1","protocolVersion":"1.3"}}""");
+        var r = await Send(s, """{"jsonrpc":"2.0","id":"a","method":"session.hello","params":{"clientName":"t","clientVersion":"1","protocolVersion":"1.4"}}""");
         r["id"]!.GetValue<string>().ShouldBe("a");
         r.Result()["userSid"]!.GetValue<string>().ShouldBe(Identities.Admin.UserSid);
         r.Result()["permissions"]!.AsArray().Select(x => x!.GetValue<string>()).ShouldBe(["dashboard.read"]);

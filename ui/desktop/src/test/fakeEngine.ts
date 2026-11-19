@@ -67,6 +67,7 @@ export const SETTINGS: SettingsDto = {
   deduplicationRetentionDays: 396,
   logLevel: "Information",
   language: "fr-FR",
+  scriptsEnabled: false,
 };
 
 export const ALL_PERMISSIONS = [

@@ -1,4 +1,4 @@
-# ERP Connect – Note de sécurité pour la DSI (première version, Phase 2)
+# ERP Connect – Note de sécurité pour la DSI (mise à jour Phase 6)
 
 > État : décrit le comportement **conçu et testé sous Linux pour la partie indépendante de Windows**. Les points
 > marqués « à confirmer sous Windows » n'ont pas encore été vérifiés sur une machine Windows réelle.
@@ -40,3 +40,22 @@
 
 Ajout seul, chaîné par SHA-256. Toute modification ou suppression d'une entrée est détectée par la vérification
 d'intégrité (écran Journal d'audit, méthode `audit.verifyChain`).
+
+## Fichiers et serveurs distants (Phases 3 à 5)
+
+- Les connexions SFTP exigent l'empreinte de la clé d'hôte ; FTPS valide le certificat (ou une empreinte SHA-256
+  épinglée) ; le FTP en clair et le HTTP en clair sont refusés sauf autorisation explicite sur la connexion.
+- Les fichiers lus sont analysés en flux avec des limites (DTD XML interdites, bombe zip refusée, profondeur JSON
+  bornée). Les chemins sont confinés à la racine de la connexion.
+- Une base SQLite source est ouverte en lecture seule.
+
+## Scripts (Phase 6)
+
+- **Désactivés par défaut.** Seul un Administrateur ERP Connect peut les activer (Paramètres), et l'activation est
+  inscrite au journal d'audit. Les désactiver empêche aussi l'exécution des flux qui en contiennent déjà.
+- Langage : JavaScript, interprété par Jint dans le service, **sans aucun accès** aux fichiers, au réseau, au
+  registre, aux processus ni aux objets .NET ; `eval` et les modules sont interdits.
+- Chaque enregistrement est borné : 500 ms, 32 Mio d'allocations, 1 000 000 d'instructions, récursion 64.
+  Un dépassement arrête l'exécution du flux.
+- **Limite** : le script s'exécute dans le processus du service (compte virtuel à privilèges minimaux), pas dans un
+  processus isolé. Python isolé n'est pas disponible. Détail et preuves : [revue de sécurité](revue-securite-phase-6.md).

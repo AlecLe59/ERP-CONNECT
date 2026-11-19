@@ -146,6 +146,12 @@ public static class RpcMethods
     public static readonly RpcMethodDescriptor AlertsAcknowledge = new(
         "alerts.acknowledge", PermissionMode.Required, "flows.run", typeof(AlertAcknowledgeParams), typeof(AlertAcknowledgeResult), "Acquitter une alerte");
 
+    public static readonly RpcMethodDescriptor ScriptsTest = new(
+        "scripts.test", PermissionMode.Required, "flows.edit", typeof(ScriptTestParams), typeof(ScriptTestResult), "Essayer un script de transformation sur un enregistrement d'exemple");
+
+    public static readonly RpcMethodDescriptor ScriptsLimits = new(
+        "scripts.limits", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(ScriptLimitsResult), "Limites d'exécution des scripts");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
@@ -155,6 +161,7 @@ public static class RpcMethods
         FlowsList, FlowsGet, FlowsSave, FlowsPublish, RunsStart, RunsList, RunsGet, RunsCancel,
         ConnectionsDiscover, FlowsPreview, FlowsFunctions,
         RunsResume, SchedulesList, SchedulesSave, SchedulesDelete, AlertsList, AlertsAcknowledge,
+        ScriptsTest, ScriptsLimits,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));

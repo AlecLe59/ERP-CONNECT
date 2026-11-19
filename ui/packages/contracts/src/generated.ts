@@ -1,7 +1,7 @@
 // Fichier généré par ErpConnect.Tools.ContractGen à partir de ErpConnect.Contracts.
 // NE PAS MODIFIER À LA MAIN : relancer `dotnet run --project tools/ErpConnect.Tools.ContractGen`.
 
-export const PROTOCOL_VERSION = "1.3";
+export const PROTOCOL_VERSION = "1.4";
 
 export interface AlertAcknowledgeParams {
   id: number;
@@ -447,6 +447,27 @@ export interface SchedulesListResult {
   schedules: ScheduleDto[];
 }
 
+export interface ScriptLimitsResult {
+  timeoutMs: number;
+  memoryBytes: number;
+  maxStatements: number;
+  maxRecursion: number;
+  maxArraySize: number;
+  maxSourceLength: number;
+}
+
+export interface ScriptTestParams {
+  code: string;
+  recordJson: string;
+}
+
+export interface ScriptTestResult {
+  fate: string;
+  outputJson: string | null;
+  reason: string | null;
+  elapsedMs: number;
+}
+
 export interface SettingsChangedPayload {
   version: number;
   updatedBy: string;
@@ -460,6 +481,7 @@ export interface SettingsDto {
   deduplicationRetentionDays: number;
   logLevel: string;
   language: string;
+  scriptsEnabled: boolean;
 }
 
 export interface SettingsResult {
@@ -560,6 +582,8 @@ export interface RpcMethodMap {
   "schedules.delete": { params: IdParams; result: DeleteResult };
   "alerts.list": { params: AlertsListParams; result: AlertsListResult };
   "alerts.acknowledge": { params: AlertAcknowledgeParams; result: AlertAcknowledgeResult };
+  "scripts.test": { params: ScriptTestParams; result: ScriptTestResult };
+  "scripts.limits": { params: EmptyParams; result: ScriptLimitsResult };
 }
 
 export type RpcMethodName = keyof RpcMethodMap;
@@ -611,6 +635,8 @@ export const METHOD_PERMISSIONS: Record<RpcMethodName, string | null> = {
   "schedules.delete": "flows.edit",
   "alerts.list": "dashboard.read",
   "alerts.acknowledge": "flows.run",
+  "scripts.test": "flows.edit",
+  "scripts.limits": "flows.read",
 };
 
 export const RPC_ERROR_CODES = {

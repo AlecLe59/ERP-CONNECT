@@ -40,6 +40,7 @@ public sealed class PreviewService
             throw new EngineException(EngineErrorKind.Validation, "Transformation invalide.", ex.Errors.Select(e => new FieldError(e.Field, e.Message)).ToList());
         }
 
+        using var pipelineLifetime = pipeline;
         var (connector, settings) = await _connections.ResolveAsync(definition.Source.ConnectionId, ct).ConfigureAwait(false);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(60));

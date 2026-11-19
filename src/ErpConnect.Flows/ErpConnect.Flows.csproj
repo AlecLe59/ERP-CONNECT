@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+    <PackageReference Include="Jint" />
   </ItemGroup>
 </Project>

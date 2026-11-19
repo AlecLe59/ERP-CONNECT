@@ -70,6 +70,8 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             ["schedules.delete"] = () => new IdParams("absent"),
             ["alerts.list"] = () => new AlertsListParams(true, 10),
             ["alerts.acknowledge"] = () => new AlertAcknowledgeParams(999_999),
+            ["scripts.test"] = () => new ScriptTestParams("function transform(r) { return r; }", "{}"),
+            ["scripts.limits"] = () => null,
         };
 
         var checkedPairs = 0;

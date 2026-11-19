@@ -13,6 +13,9 @@ public sealed record EngineSettings
     public string LogLevel { get; init; } = "Information";
     public string Language { get; init; } = "fr-FR";
 
+    /// <summary>Blocs « script » autorisés (ADR 0008 : désactivés par défaut, activation par un administrateur, tracée).</summary>
+    public bool ScriptsEnabled { get; init; }
+
     public static IReadOnlyList<string> AllowedLogLevels { get; } = ["Debug", "Information", "Warning", "Error"];
 
     public static IReadOnlyList<string> AllowedLanguages { get; } = ["fr-FR", "en-US"];

@@ -157,6 +157,7 @@ const STEP_KINDS: { kind: string; label: string }[] = [
   { kind: "rename", label: "Renommer un champ" },
   { kind: "remove", label: "Supprimer des champs" },
   { kind: "validate", label: "Contrôler (rejeter si faux)" },
+  { kind: "script", label: "Script JavaScript (isolé)" },
 ];
 
 /** Blocs de transformation appliqués dans l'ordre, avant la correspondance. */
@@ -182,6 +183,10 @@ export function StepsEditor({ steps, onChange }: { steps: StepSpecDto[]; onChang
             {s.kind === "rename" && <input aria-label={`Nouveau nom ${i + 1}`} value={s.target ?? ""} onChange={(e) => patch(i, { target: e.target.value })} />}
             {(s.kind === "filter" || s.kind === "set" || s.kind === "validate") && (
               <input aria-label={`Expression du bloc ${i + 1}`} value={s.expression ?? ""} onChange={(e) => patch(i, { expression: e.target.value })} />
+            )}
+            {s.kind === "script" && (
+              <textarea aria-label={`Script du bloc ${i + 1}`} rows={6} spellCheck={false} className="code"
+                placeholder="function transform(record) { return record; }" value={s.expression ?? ""} onChange={(e) => patch(i, { expression: e.target.value })} />
             )}
             {s.kind === "validate" && <input aria-label={`Motif de rejet ${i + 1}`} value={s.message ?? ""} onChange={(e) => patch(i, { message: e.target.value })} />}
             <button type="button" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Monter le bloc ${i + 1}`}>↑</button>

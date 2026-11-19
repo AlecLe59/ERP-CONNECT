@@ -48,6 +48,11 @@
         "resolved": "3.1.5",
         "contentHash": "tKi7dSTwP4m5m9eXPM2Ime4Kn7xNf4x4zT9sdLO/G4hZVnQCRiMTWoSZqI/pYTVeI27oPPqHBKYI/DjJ9GsYgA=="
       },
+      "Acornima": {
+        "type": "Transitive",
+        "resolved": "1.9.1",
+        "contentHash": "8dzVWz1AMyCaHq1DRU+qjNGd6jZyc4BgUBhl0qqdG0y+C02f2JASQaobF+O6A9vrW2QZL5Kx2q6V/KP3Q2LU+A=="
+      },
       "BouncyCastle.Cryptography": {
         "type": "Transitive",
         "resolved": "2.7.0",
@@ -476,7 +481,8 @@
       "erpconnect.flows": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.5.0, )"
+          "ErpConnect.Connectors.Sdk": "[0.5.0, )",
+          "Jint": "[4.18.0, )"
         }
       },
       "erpconnect.rpc": {
@@ -532,6 +538,15 @@
         "requested": "[55.1.0, )",
         "resolved": "55.1.0",
         "contentHash": "RXA6WEaziJiSt/lrOxbpxfkOyTY1YaeQiCKzsVoQQxEwcoI0dtoTzGiqS47mrqq3zBuETMwaVjI7FLTCcJC80w=="
+      },
+      "Jint": {
+        "type": "CentralTransitive",
+        "requested": "[4.18.0, )",
+        "resolved": "4.18.0",
+        "contentHash": "DDFAZpJ3uvbzY6MiqchX+efNi+oj8QXKKIysB8aEqeWpfIuILvVjqYhXGvzLi10NbHWLu8G2pE+Ngwb1c5NSVw==",
+        "dependencies": {
+          "Acornima": "1.9.1"
+        }
       },
       "Microsoft.Data.Sqlite": {
         "type": "CentralTransitive",

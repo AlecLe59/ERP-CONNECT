@@ -17,6 +17,13 @@ public sealed partial class FlowService
     private readonly IAuditLog _audit;
     private readonly IClock _clock;
 
+    /// <summary>Politique « scripts autorisés » (paramètre ScriptsEnabled). Null : autorisés (tests du noyau).</summary>
+    public Func<CancellationToken, Task<bool>>? ScriptsAllowed { get; init; }
+
+    public async Task<bool> ScriptsAllowedAsync(CancellationToken ct) => ScriptsAllowed is null || await ScriptsAllowed(ct).ConfigureAwait(false);
+
+    public static bool UsesScripts(FlowDefinition definition) => definition?.AllSteps.Any(s => s.Kind == "script") ?? false;
+
     public FlowService(IFlowRepository repository, IConnectionRepository connections, IAuditLog audit, IClock clock)
     {
         _repository = repository;
@@ -47,6 +54,10 @@ public sealed partial class FlowService
         ArgumentNullException.ThrowIfNull(caller);
         ArgumentNullException.ThrowIfNull(definition);
         var errors = definition.Validate().Select(e => new FieldError(e.Field, e.Message)).ToList();
+        if (UsesScripts(definition) && !await ScriptsAllowedAsync(ct).ConfigureAwait(false))
+        {
+            errors.Add(new FieldError("steps", "Les scripts sont désactivés (Paramètres > Scripts, réservé à l'administrateur)."));
+        }
         if (string.IsNullOrWhiteSpace(name) || name.Length > 100)
         {
             errors.Add(new FieldError("name", "Entre 1 et 100 caractères."));

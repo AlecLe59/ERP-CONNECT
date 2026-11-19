@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "1.3",
+  "protocolVersion": "1.4",
   "pipeName": "ERPConnect.Engine",
   "maxMessageBytes": 4194304,
   "maxJsonDepth": 64,
@@ -185,6 +185,20 @@
       "permission": "flows.edit",
       "params": "ScheduleSaveParams",
       "result": "ScheduleDto"
+    },
+    {
+      "name": "scripts.limits",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "ScriptLimitsResult"
+    },
+    {
+      "name": "scripts.test",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "ScriptTestParams",
+      "result": "ScriptTestResult"
     },
     {
       "name": "session.hello",
@@ -1444,6 +1458,60 @@
         "type": "ScheduleDto[]"
       }
     ],
+    "ScriptLimitsResult": [
+      {
+        "name": "timeoutMs",
+        "type": "number"
+      },
+      {
+        "name": "memoryBytes",
+        "type": "number"
+      },
+      {
+        "name": "maxStatements",
+        "type": "number"
+      },
+      {
+        "name": "maxRecursion",
+        "type": "number"
+      },
+      {
+        "name": "maxArraySize",
+        "type": "number"
+      },
+      {
+        "name": "maxSourceLength",
+        "type": "number"
+      }
+    ],
+    "ScriptTestParams": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "recordJson",
+        "type": "string"
+      }
+    ],
+    "ScriptTestResult": [
+      {
+        "name": "fate",
+        "type": "string"
+      },
+      {
+        "name": "outputJson",
+        "type": "string | null"
+      },
+      {
+        "name": "reason",
+        "type": "string | null"
+      },
+      {
+        "name": "elapsedMs",
+        "type": "number"
+      }
+    ],
     "SettingsChangedPayload": [
       {
         "name": "version",
@@ -1482,6 +1550,10 @@
       {
         "name": "language",
         "type": "string"
+      },
+      {
+        "name": "scriptsEnabled",
+        "type": "boolean"
       }
     ],
     "SettingsResult": [

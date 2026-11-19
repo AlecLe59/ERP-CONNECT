@@ -49,6 +49,7 @@ internal static class RpcEndpoints
                 DeduplicationRetentionDays = s.DeduplicationRetentionDays,
                 LogLevel = s.LogLevel,
                 Language = s.Language,
+                ScriptsEnabled = s.ScriptsEnabled,
             };
             return ToDto(await Guard(() => runtime.Settings.UpdateAsync(ctx.Caller, model, p.ExpectedVersion, ctx.CorrelationId, ct)).ConfigureAwait(false));
         });
@@ -144,6 +145,7 @@ internal static class RpcEndpoints
         RegisterFlows(dispatcher, runtime);
         RegisterDesign(dispatcher, runtime);
         RegisterScheduling(dispatcher, runtime);
+        RegisterScripts(dispatcher, runtime);
     }
 
     private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -240,7 +242,13 @@ internal static class RpcEndpoints
 
         dispatcher.Register<FlowPreviewParams, FlowPreviewResult>(RpcMethods.FlowsPreview, async (_, p, ct) =>
         {
-            var r = await Guard(() => runtime.Preview.PreviewAsync(FromDto(p.Definition), p.Limit, ct)).ConfigureAwait(false);
+            var definition = FromDto(p.Definition);
+            if (FlowService.UsesScripts(definition))
+            {
+                await RequireScriptsAsync(runtime, ct).ConfigureAwait(false);
+            }
+
+            var r = await Guard(() => runtime.Preview.PreviewAsync(definition, p.Limit, ct)).ConfigureAwait(false);
             return new FlowPreviewResult(
                 r.Rows.Select(x => new PreviewRowDto(x.SourceJson, x.OutputJson, JsonNamingPolicy.CamelCase.ConvertName(x.Fate.ToString()), x.Reason)).ToArray(),
                 r.SourceFields.ToArray());
@@ -248,6 +256,65 @@ internal static class RpcEndpoints
 
         dispatcher.Register<EmptyParams, FunctionsListResult>(RpcMethods.FlowsFunctions, (_, _, _) => Task.FromResult(new FunctionsListResult(
             ExpressionCompiler.FunctionCatalog.Select(f => new FunctionDto(f.Name, f.Signature, f.Help)).ToArray())));
+    }
+
+    private static async Task RequireScriptsAsync(EngineRuntime runtime, CancellationToken ct)
+    {
+        if (!await runtime.Flows.ScriptsAllowedAsync(ct).ConfigureAwait(false))
+        {
+            throw new RpcException(RpcErrorCodes.EntitlementDenied, "Les scripts sont désactivés dans les paramètres.");
+        }
+    }
+
+    private static void RegisterScripts(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<ScriptTestParams, ScriptTestResult>(RpcMethods.ScriptsTest, async (_, p, ct) =>
+        {
+            await RequireScriptsAsync(runtime, ct).ConfigureAwait(false);
+            Connectors.Sdk.Record record;
+            try
+            {
+                record = ScriptStep.ParseRecord(p.RecordJson);
+            }
+            catch (ScriptException ex)
+            {
+                throw RpcException.Validation([new FieldErrorDto("recordJson", ex.Message)]);
+            }
+
+            ScriptStep script;
+            try
+            {
+                script = ScriptStep.Compile(p.Code);
+            }
+            catch (ScriptException ex)
+            {
+                throw RpcException.Validation([new FieldErrorDto("code", ex.Message)]);
+            }
+
+            using (script)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    var r = script.Apply(record);
+                    return new ScriptTestResult(
+                        JsonNamingPolicy.CamelCase.ConvertName(r.Fate.ToString()),
+                        r.Output is null ? null : Connectors.Sdk.RecordJson.Serialize(r.Output, 64 * 1024),
+                        r.RejectReason,
+                        sw.ElapsedMilliseconds);
+                }
+                catch (Connectors.Sdk.ConnectorException ex)
+                {
+                    return new ScriptTestResult("stopped", null, ex.Message, sw.ElapsedMilliseconds);
+                }
+            }
+        });
+
+        dispatcher.Register<EmptyParams, ScriptLimitsResult>(RpcMethods.ScriptsLimits, (_, _, _) =>
+        {
+            var l = ScriptLimits.Default;
+            return Task.FromResult(new ScriptLimitsResult((int)l.TimeoutPerRecord.TotalMilliseconds, l.MemoryBytes, l.MaxStatements, l.MaxRecursion, l.MaxArraySize, ScriptLimits.MaxSourceLength));
+        });
     }
 
     private static void RegisterScheduling(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -393,7 +460,7 @@ internal static class RpcEndpoints
     private static SettingsResult ToDto(VersionedSettings v) => new(
         new SettingsDto(
             v.Settings.RunHeaderRetentionDays, v.Settings.SucceededLogRetentionDays, v.Settings.FailedLogRetentionDays,
-            v.Settings.RejectRetentionDays, v.Settings.DeduplicationRetentionDays, v.Settings.LogLevel, v.Settings.Language),
+            v.Settings.RejectRetentionDays, v.Settings.DeduplicationRetentionDays, v.Settings.LogLevel, v.Settings.Language, v.Settings.ScriptsEnabled),
         v.Version, v.UpdatedAt, v.UpdatedBy);
 
     private static RoleAssignmentDto ToDto(RoleAssignment a) => new(

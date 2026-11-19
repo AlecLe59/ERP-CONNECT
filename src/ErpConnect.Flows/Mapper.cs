@@ -73,15 +73,28 @@ public sealed class RecordMapper
 }
 
 /// <summary>Chaîne complète d'un flux : blocs de transformation puis correspondance. Compilée une fois par exécution.</summary>
-public sealed class RecordPipeline
+public sealed class RecordPipeline : IDisposable
 {
     private readonly Func<Record, MapResult>[] _steps;
     private readonly RecordMapper _mapper;
+    private readonly List<IDisposable> _resources;
 
-    private RecordPipeline(Func<Record, MapResult>[] steps, RecordMapper mapper)
+    private RecordPipeline(Func<Record, MapResult>[] steps, RecordMapper mapper, List<IDisposable> resources)
     {
         _steps = steps;
         _mapper = mapper;
+        _resources = resources;
+    }
+
+    /// <summary>Libère les interpréteurs de script. Un pipeline n'est pas sûr entre threads (un enregistrement à la fois).</summary>
+    public void Dispose()
+    {
+        foreach (var r in _resources)
+        {
+            r.Dispose();
+        }
+
+        _resources.Clear();
     }
 
     public static RecordPipeline Compile(FlowDefinition definition)
@@ -93,7 +106,16 @@ public sealed class RecordPipeline
             throw new FlowValidationException(errors);
         }
 
-        return new RecordPipeline(definition.AllSteps.Select(CompileStep).ToArray(), RecordMapper.Compile(definition.Mapping));
+        var resources = new List<IDisposable>();
+        try
+        {
+            return new RecordPipeline(definition.AllSteps.Select(s => CompileStep(s, resources)).ToArray(), RecordMapper.Compile(definition.Mapping), resources);
+        }
+        catch
+        {
+            resources.ForEach(r => r.Dispose());
+            throw;
+        }
     }
 
     public MapResult Process(Record source)
@@ -110,6 +132,8 @@ public sealed class RecordPipeline
                 {
                     return r;
                 }
+
+                current = r.Output ?? current; // un script renvoie un nouvel enregistrement ; les autres blocs modifient en place
             }
         }
 
@@ -171,15 +195,22 @@ public sealed class RecordPipeline
                 }
 
                 break;
+            case "script":
+                if (ScriptStep.Validate(step.Expression) is { } scriptError)
+                {
+                    errors.Add(new("expression", scriptError));
+                }
+
+                break;
             default:
-                errors.Add(new("kind", "Valeurs admises : filter, set, rename, remove, validate."));
+                errors.Add(new("kind", "Valeurs admises : filter, set, rename, remove, validate, script."));
                 break;
         }
 
         return errors;
     }
 
-    private static Func<Record, MapResult> CompileStep(StepSpec step)
+    private static Func<Record, MapResult> CompileStep(StepSpec step, List<IDisposable> resources)
     {
         static MapResult Guard(string label, Func<MapResult> f)
         {
@@ -245,6 +276,22 @@ public sealed class RecordPipeline
 
                     return ok;
                 };
+            }
+
+            case "script":
+            {
+                ScriptStep script;
+                try
+                {
+                    script = ScriptStep.Compile(step.Expression);
+                }
+                catch (ScriptException ex)
+                {
+                    throw new FlowValidationException([new("script", ex.Message)]);
+                }
+
+                resources.Add(script);
+                return script.Apply;
             }
 
             default:

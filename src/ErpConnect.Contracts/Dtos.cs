@@ -45,7 +45,8 @@ public sealed record SettingsDto(
     int RejectRetentionDays,
     int DeduplicationRetentionDays,
     string LogLevel,
-    string Language);
+    string Language,
+    bool ScriptsEnabled = false);
 
 public sealed record SettingsResult(SettingsDto Settings, long Version, DateTimeOffset UpdatedAt, string UpdatedBy);
 

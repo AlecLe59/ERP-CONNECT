@@ -299,6 +299,11 @@ public sealed class RunService : IAsyncDisposable
         {
             (sourceConnector, sourceSettings) = await _connections.ResolveAsync(def.Source.ConnectionId, ct).ConfigureAwait(false);
             (targetConnector, targetSettings) = await _connections.ResolveAsync(def.Target.ConnectionId, ct).ConfigureAwait(false);
+            if (FlowService.UsesScripts(def) && !await _flows.ScriptsAllowedAsync(ct).ConfigureAwait(false))
+            {
+                throw new EngineException(EngineErrorKind.Forbidden, "Ce flux contient un script et les scripts sont désactivés dans les paramètres.");
+            }
+
             pipeline = RecordPipeline.Compile(def);
         }
         catch (Exception ex) when (ex is EngineException or FlowValidationException or ConnectorException)
@@ -307,6 +312,7 @@ public sealed class RunService : IAsyncDisposable
             return;
         }
 
+        using var pipelineLifetime = pipeline;
         var transactional = targetConnector.Manifest.Capabilities.HasFlag(ConnectorCapabilities.FileTransport);
         var cursor = transactional ? null : run.Checkpoint;
         if (run.Checkpoint is not null)

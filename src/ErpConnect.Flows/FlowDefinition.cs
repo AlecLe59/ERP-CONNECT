@@ -21,7 +21,8 @@ public sealed record MappingSpec(string Mode, FieldMap[] Fields);
 /// <summary>
 /// Bloc de transformation appliqué avant la correspondance, dans l'ordre.
 /// kind : filter (expression booléenne, faux = enregistrement écarté), set (field = expression),
-/// rename (field → target), remove (field, liste séparée par des virgules), validate (expression fausse = rejet avec message).
+/// rename (field → target), remove (field, liste séparée par des virgules), validate (expression fausse = rejet avec message),
+/// script (JavaScript isolé dans expression : function transform(record), voir ScriptStep).
 /// </summary>
 public sealed record StepSpec(string Kind, string? Field = null, string? Expression = null, string? Target = null, string? Message = null);
 

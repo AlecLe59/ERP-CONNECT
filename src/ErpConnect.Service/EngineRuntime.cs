@@ -122,7 +122,11 @@ internal sealed class EngineRuntime : IAsyncDisposable
         var flows = new FlowRepository(Config);
         Connections = new ConnectionService(connections, flows, _vault, _audit, Clock, ConnectorCatalog);
         Preview = new PreviewService(Connections);
-        Flows = new FlowService(flows, connections, _audit, Clock);
+        var settings = Settings;
+        Flows = new FlowService(flows, connections, _audit, Clock)
+        {
+            ScriptsAllowed = async token => (await settings.GetAsync(token).ConfigureAwait(false)).Settings.ScriptsEnabled,
+        };
         var runRepository = new RunRepository(RunsDb);
         Alerts = runRepository;
         Runs = new RunService(runRepository, Flows, Connections, _audit, Clock, Events, RunOptions);

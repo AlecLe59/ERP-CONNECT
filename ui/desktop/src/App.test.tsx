@@ -24,8 +24,8 @@ describe("App", () => {
 
   it("un écran de phase future n'affiche aucune donnée", async () => {
     renderWithEngine(<App />, new FakeEngine(ALL_PERMISSIONS));
-    await userEvent.click(await screen.findByRole("button", { name: /Scripts/ }));
-    expect(await screen.findByText(/Disponible en Phase 6/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Licence/ }));
+    expect(await screen.findByText(/Disponible en Phase 7/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
   });
 

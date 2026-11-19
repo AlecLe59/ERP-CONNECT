@@ -75,6 +75,10 @@ export function Settings() {
               <option value="en-US">English</option>
             </select>
           </label>
+          <label>
+            <input type="checkbox" checked={draft.scriptsEnabled} onChange={(e) => setDraft({ ...draft, scriptsEnabled: e.target.checked })} />
+            {" "}Autoriser les scripts JavaScript dans les flux (bac à sable, désactivé par défaut)
+          </label>
           {editable && <button type="submit">Enregistrer</button>}
         </fieldset>
       </form>
