@@ -147,6 +147,7 @@ internal static class RpcEndpoints
         RegisterScheduling(dispatcher, runtime);
         RegisterScripts(dispatcher, runtime);
         RegisterLicense(dispatcher, runtime);
+        RegisterBackup(dispatcher, runtime);
     }
 
     private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -257,6 +258,18 @@ internal static class RpcEndpoints
 
         dispatcher.Register<EmptyParams, FunctionsListResult>(RpcMethods.FlowsFunctions, (_, _, _) => Task.FromResult(new FunctionsListResult(
             ExpressionCompiler.FunctionCatalog.Select(f => new FunctionDto(f.Name, f.Signature, f.Help)).ToArray())));
+    }
+
+    private static void RegisterBackup(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<BackupCreateParams, BackupDto>(RpcMethods.BackupCreate, async (ctx, p, ct) =>
+        {
+            var b = await Guard(() => runtime.Backup.CreateAsync(ctx.Caller, string.IsNullOrEmpty(p.Passphrase) ? null : p.Passphrase, ctx.CorrelationId, ct)).ConfigureAwait(false);
+            return new BackupDto(b.FileName, b.Size, b.CreatedAt, b.IncludesKeys);
+        });
+
+        dispatcher.Register<EmptyParams, BackupsListResult>(RpcMethods.BackupList, (_, _, _) => Task.FromResult(new BackupsListResult(
+            runtime.Backup.List().Select(b => new BackupDto(b.FileName, b.Size, b.CreatedAt, b.IncludesKeys)).ToArray(), runtime.Paths.Backup)));
     }
 
     private static void RegisterLicense(RpcDispatcher dispatcher, EngineRuntime runtime)

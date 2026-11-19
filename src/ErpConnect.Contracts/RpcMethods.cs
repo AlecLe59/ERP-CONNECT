@@ -161,6 +161,12 @@ public static class RpcMethods
     public static readonly RpcMethodDescriptor LicenseRemove = new(
         "license.remove", PermissionMode.Required, "license.manage", typeof(EmptyParams), typeof(DeleteResult), "Retirer la licence importée");
 
+    public static readonly RpcMethodDescriptor BackupCreate = new(
+        "backup.create", PermissionMode.Required, "settings.edit", typeof(BackupCreateParams), typeof(BackupDto), "Sauvegarder les bases (et, avec une phrase de passe, les clés)");
+
+    public static readonly RpcMethodDescriptor BackupList = new(
+        "backup.list", PermissionMode.Required, "settings.read", typeof(EmptyParams), typeof(BackupsListResult), "Sauvegardes présentes sur la machine");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
@@ -172,6 +178,7 @@ public static class RpcMethods
         RunsResume, SchedulesList, SchedulesSave, SchedulesDelete, AlertsList, AlertsAcknowledge,
         ScriptsTest, ScriptsLimits,
         LicenseGet, LicenseImport, LicenseRemove,
+        BackupCreate, BackupList,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));

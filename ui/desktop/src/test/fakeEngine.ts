@@ -15,6 +15,7 @@ export class FakeEngine implements EngineTransport {
   constructor(permissions: string[], roles: string[] = ["administrator"]) {
     this.permissions = permissions;
     const hello: HelloResult = { sessionId: "s1", protocolVersion: "1.0", serverVersion: "0.2.0", userSid: "S-1-5-21-1", userName: "PC\\alice", roles, permissions };
+    this.handlers["backup.list"] = () => ({ backups: [], folder: "C:\\ProgramData\\ERPConnect\\backup" });
     this.handlers["session.hello"] = () => ({ ...hello, permissions: this.permissions });
     this.handlers["system.getStatus"] = () => STATUS;
     this.handlers["system.getInfo"] = () => ({ installationId: "inst-1", machineName: "SRV01", serviceAccount: "NT SERVICE\\ERPConnectEngine", dataDirectory: "C:\\ProgramData\\ERPConnect\\data", logDirectory: "x", osDescription: "Windows", installedAt: "2026-11-19T10:00:00Z" });

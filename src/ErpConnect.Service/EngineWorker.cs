@@ -60,6 +60,7 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
             BridgeEvents(_server);
             _server.Start();
             _runtime.Scheduler.Start();
+            _runtime.Retention.Start();
             _runtime.Status.SetState(EngineState.Running);
             LogStarted(_logger, _runtime.Version, Protocol.PipeName);
         }

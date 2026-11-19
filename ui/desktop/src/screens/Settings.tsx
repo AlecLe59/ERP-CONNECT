@@ -4,6 +4,7 @@ import type { SettingsDto } from "@contracts";
 import { useEngine } from "../engine/EngineContext";
 import { RpcError } from "../engine/client";
 import { ErrorMessage } from "../components/Feedback";
+import { BackupPanel } from "../components/BackupPanel";
 
 const RETENTION_FIELDS: { key: keyof SettingsDto; label: string }[] = [
   { key: "runHeaderRetentionDays", label: "En-têtes d'exécution (jours)" },
@@ -92,6 +93,7 @@ export function Settings() {
       )}
       {save.isSuccess && <p role="status">Paramètres enregistrés (version {save.data.version}).</p>}
       <p className="muted">Dernière modification par {query.data.updatedBy}, le {new Date(query.data.updatedAt).toLocaleString("fr-FR")}.</p>
+      <BackupPanel />
     </section>
   );
 }

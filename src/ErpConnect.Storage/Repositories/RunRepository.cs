@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace ErpConnect.Storage.Repositories;
 
-public sealed class RunRepository : IRunRepository, IDedupRegistry, IAlertRepository
+public sealed class RunRepository : IRunRepository, IDedupRegistry, IAlertRepository, IRetentionStore
 {
     private readonly SqliteDatabase _db;
 
@@ -285,5 +285,50 @@ public sealed class RunRepository : IRunRepository, IDedupRegistry, IAlertReposi
         await using var u = c.Command("UPDATE Alert SET AcknowledgedAt = $at, AcknowledgedBy = $by WHERE Id = $id AND AcknowledgedAt IS NULL;")
             .With("$id", id).With("$at", Iso(at)).With("$by", by);
         return await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;
+    }
+
+    /// <summary>
+    /// Purge selon les durées de rétention, dans une transaction. Seules les exécutions terminées sont concernées ;
+    /// une exécution encore référencée comme parente par une exécution conservée est gardée (lignée de reprise).
+    /// </summary>
+    public async Task<PurgeCounts> PurgeAsync(RetentionCutoffs cutoffs, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(cutoffs);
+        const string Terminal = "Status IN (2, 3, 4, 6) AND EndedAt IS NOT NULL";
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        await using var tx = (SqliteTransaction)await c.BeginTransactionAsync(ct).ConfigureAwait(false);
+        async Task<long> Exec(string sql, params (string Name, object Value)[] p)
+        {
+            await using var cmd = c.Command(sql, tx);
+            foreach (var (n, v) in p)
+            {
+                cmd.With(n, v);
+            }
+
+            return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        var logs = await Exec($"DELETE FROM RunLog WHERE RunId IN (SELECT Id FROM Run WHERE {Terminal} AND Status IN (2, 3) AND EndedAt < $c);", ("$c", Iso(cutoffs.SucceededLogs)));
+        logs += await Exec($"DELETE FROM RunLog WHERE RunId IN (SELECT Id FROM Run WHERE {Terminal} AND Status IN (4, 6) AND EndedAt < $c);", ("$c", Iso(cutoffs.FailedLogs)));
+        var rejects = await Exec($"DELETE FROM RunReject WHERE RunId IN (SELECT Id FROM Run WHERE {Terminal} AND EndedAt < $c);", ("$c", Iso(cutoffs.Rejects)));
+        var dedup = await Exec("DELETE FROM DedupKey WHERE At < $c;", ("$c", Iso(cutoffs.DedupKeys)));
+        var alerts = await Exec("DELETE FROM Alert WHERE AcknowledgedAt IS NOT NULL AND CreatedAt < $c;", ("$c", Iso(cutoffs.RunHeaders)));
+        long runs = 0;
+        for (var pass = 0; pass < 20; pass++) // les enfants d'abord, puis leurs parents au passage suivant
+        {
+            const string Old = "SELECT Id FROM Run r WHERE " + Terminal + " AND EndedAt < $c AND NOT EXISTS (SELECT 1 FROM Run k WHERE k.ParentRunId = r.Id)";
+            await Exec($"DELETE FROM RunLog WHERE RunId IN ({Old});", ("$c", Iso(cutoffs.RunHeaders)));
+            await Exec($"DELETE FROM RunReject WHERE RunId IN ({Old});", ("$c", Iso(cutoffs.RunHeaders)));
+            await Exec($"DELETE FROM RunStatusHistory WHERE RunId IN ({Old});", ("$c", Iso(cutoffs.RunHeaders)));
+            var deleted = await Exec($"DELETE FROM Run WHERE Id IN ({Old});", ("$c", Iso(cutoffs.RunHeaders)));
+            runs += deleted;
+            if (deleted == 0)
+            {
+                break;
+            }
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+        return new PurgeCounts(runs, logs, rejects, dedup, alerts);
     }
 }

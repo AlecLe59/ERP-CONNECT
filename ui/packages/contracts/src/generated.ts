@@ -1,7 +1,7 @@
 // Fichier généré par ErpConnect.Tools.ContractGen à partir de ErpConnect.Contracts.
 // NE PAS MODIFIER À LA MAIN : relancer `dotnet run --project tools/ErpConnect.Tools.ContractGen`.
 
-export const PROTOCOL_VERSION = "1.5";
+export const PROTOCOL_VERSION = "1.6";
 
 export interface AlertAcknowledgeParams {
   id: number;
@@ -84,6 +84,22 @@ export interface AuditVerifyResult {
   checkedCount: number;
   firstInvalidSequence: number | null;
   reason: string | null;
+}
+
+export interface BackupCreateParams {
+  passphrase: string | null;
+}
+
+export interface BackupDto {
+  fileName: string;
+  size: number;
+  createdAt: string;
+  includesKeys: boolean;
+}
+
+export interface BackupsListResult {
+  backups: BackupDto[];
+  folder: string;
 }
 
 export interface ConfigFieldDto {
@@ -614,6 +630,8 @@ export interface RpcMethodMap {
   "license.get": { params: EmptyParams; result: LicenseStatusResult };
   "license.import": { params: LicenseImportParams; result: LicenseStatusResult };
   "license.remove": { params: EmptyParams; result: DeleteResult };
+  "backup.create": { params: BackupCreateParams; result: BackupDto };
+  "backup.list": { params: EmptyParams; result: BackupsListResult };
 }
 
 export type RpcMethodName = keyof RpcMethodMap;
@@ -670,6 +688,8 @@ export const METHOD_PERMISSIONS: Record<RpcMethodName, string | null> = {
   "license.get": "dashboard.read",
   "license.import": "license.manage",
   "license.remove": "license.manage",
+  "backup.create": "settings.edit",
+  "backup.list": "settings.read",
 };
 
 export const RPC_ERROR_CODES = {

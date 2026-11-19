@@ -4,7 +4,7 @@ Logiciel d'intégration universelle de données pour Windows, installé chez le 
 
 **Principe :** SOURCE → TRANSFORMATION → DESTINATION
 
-> **État du projet : Phases 2 à 7 développées (socle Windows, connecteurs, exécution par lots, éditeur, planification et reprise, scripts isolés, licence hors ligne), en attente de validation sur Windows. Agent distant et Control Center non développés.**
+> **État du projet : Phases 2 à 8 développées (socle Windows, connecteurs, exécution par lots, éditeur, planification et reprise, scripts isolés, licence hors ligne, sauvegarde et restauration), en attente de validation sur Windows. Agent distant et Control Center non développés ; installateur MSI à l’état d’ébauche non testée. Voir [l’audit](docs/phases/audit-final.md).**
 > Le socle compile et ses tests passent sous Linux (voir [docs/phases/phase-2-rapport.md](docs/phases/phase-2-rapport.md)).
 > Les parties propres à Windows (service installé, ACL, DPAPI, MSI) sont écrites mais **pas encore testées sur
 > Windows** : rien n'est déclaré opérationnel chez un client avant cette validation.

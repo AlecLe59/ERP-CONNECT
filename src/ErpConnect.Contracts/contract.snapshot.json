@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "1.5",
+  "protocolVersion": "1.6",
   "pipeName": "ERPConnect.Engine",
   "maxMessageBytes": 4194304,
   "maxJsonDepth": 64,
@@ -31,6 +31,20 @@
       "permission": "audit.read",
       "params": "EmptyParams",
       "result": "AuditVerifyResult"
+    },
+    {
+      "name": "backup.create",
+      "permissionMode": "Required",
+      "permission": "settings.edit",
+      "params": "BackupCreateParams",
+      "result": "BackupDto"
+    },
+    {
+      "name": "backup.list",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "BackupsListResult"
     },
     {
       "name": "connections.delete",
@@ -584,6 +598,40 @@
       {
         "name": "reason",
         "type": "string | null"
+      }
+    ],
+    "BackupCreateParams": [
+      {
+        "name": "passphrase",
+        "type": "string | null"
+      }
+    ],
+    "BackupDto": [
+      {
+        "name": "fileName",
+        "type": "string"
+      },
+      {
+        "name": "size",
+        "type": "number"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "includesKeys",
+        "type": "boolean"
+      }
+    ],
+    "BackupsListResult": [
+      {
+        "name": "backups",
+        "type": "BackupDto[]"
+      },
+      {
+        "name": "folder",
+        "type": "string"
       }
     ],
     "ConfigFieldDto": [

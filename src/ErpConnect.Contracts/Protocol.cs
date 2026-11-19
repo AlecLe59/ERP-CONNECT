@@ -5,7 +5,7 @@ public static class Protocol
 {
     public const int Major = 1;
     public const int Minor = 1;
-    public const string Version = "1.5";
+    public const string Version = "1.6";
 
     /// <summary>Nom du named pipe (\\.\pipe\ERPConnect.Engine).</summary>
     public const string PipeName = "ERPConnect.Engine";

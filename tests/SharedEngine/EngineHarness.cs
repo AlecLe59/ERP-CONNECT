@@ -20,6 +20,7 @@ internal sealed class EngineHarness : IAsyncDisposable
     private readonly ConcurrentQueue<CallerIdentity> _nextIdentities = new();
     private PipeServer? _server;
     private ErpConnect.Security.Licensing.LicenseVerifier? _licenseVerifier;
+    private Func<byte[], ErpConnect.Security.Vault.IKeyProtector>? _protectorFactory;
 
     private EngineHarness(string root, FakeClock clock)
     {
@@ -42,9 +43,10 @@ internal sealed class EngineHarness : IAsyncDisposable
 
     public PipeServer Server => _server!;
 
-    public static async Task<EngineHarness> StartAsync(string root, FakeClock? clock = null, int maxConnections = 32, ErpConnect.Security.Licensing.LicenseVerifier? licenseVerifier = null)
+    public static async Task<EngineHarness> StartAsync(string root, FakeClock? clock = null, int maxConnections = 32, ErpConnect.Security.Licensing.LicenseVerifier? licenseVerifier = null,
+        Func<byte[], ErpConnect.Security.Vault.IKeyProtector>? protectorFactory = null)
     {
-        var h = new EngineHarness(root, clock ?? new FakeClock()) { _licenseVerifier = licenseVerifier };
+        var h = new EngineHarness(root, clock ?? new FakeClock()) { _licenseVerifier = licenseVerifier, _protectorFactory = protectorFactory };
         await h.StartCoreAsync(maxConnections);
         return h;
     }
@@ -77,9 +79,11 @@ internal sealed class EngineHarness : IAsyncDisposable
 
     private async Task StartCoreAsync(int maxConnections)
     {
-        Runtime = new EngineRuntime(new EnginePaths(Root), _ => new TestKeyProtector(), Principals, Clock, "0.2.0-test")
+        Runtime = new EngineRuntime(new EnginePaths(Root), _protectorFactory ?? (_ => new TestKeyProtector()), Principals, Clock, "0.2.0-test")
         {
             LicenseVerifier = _licenseVerifier ?? new ErpConnect.Security.Licensing.LicenseVerifier([]),
+            KeyExportParameters = ErpConnect.Security.Backup.Argon2Parameters.ForTests,
+            UnprotectRestorePassphrase = b => b, // les tests déposent la phrase en clair (DPAPI machine sous Windows)
         };
         await Runtime.StartAsync(default);
         Dispatcher = new RpcDispatcher(new RuntimeAuthorizer(Runtime), new RuntimeAuditSink(Runtime), NullLogger<RpcDispatcher>.Instance, Runtime.Version);

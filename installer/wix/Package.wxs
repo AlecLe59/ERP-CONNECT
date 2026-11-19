@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ERP Connect Engine : paquet MSI (WiX Toolset v5).
+  ÉTAT : ÉBAUCHE NON CONSTRUITE ET NON TESTÉE. Elle décrit ce que l'installateur doit faire (ADR 0006, 0009) ;
+  elle doit être construite et validée sur Windows (voir installer/README.md) avant toute diffusion.
+
+  Construction prévue :
+    dotnet publish src/ErpConnect.Service -c Release -r win-x64 (autonome) -o out/engine -p:ErpConnectLicensePublicKey=(clé publique)
+    wix build installer/wix/Package.wxs -ext WixToolset.Util.wixext -d EngineDir=out/engine -o ERPConnect-Engine.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="ERP Connect Engine" Manufacturer="ERP CONNECT" Version="0.8.0" Scope="perMachine"
+           UpgradeCode="6F1E2B9C-2C55-4F0B-9E9C-6A4E0F7C1D11" Language="1036" Codepage="1252" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente d'ERP Connect est déjà installée." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Les données ne sont jamais supprimées par la désinstallation (bases, clés, sauvegardes). -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="ERP Connect">
+        <Directory Id="ENGINEFOLDER" Name="Engine" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DATAROOT" Name="ERPConnect">
+        <Directory Id="DATAFOLDER" Name="data" />
+        <Directory Id="KEYSFOLDER" Name="keys" />
+        <Directory Id="LOGSFOLDER" Name="logs" />
+        <Directory Id="BACKUPFOLDER" Name="backup" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Engine" Title="Moteur ERP Connect" Level="1">
+      <ComponentGroupRef Id="EngineFiles" />
+      <ComponentRef Id="EngineService" />
+      <ComponentRef Id="DataFolders" />
+      <ComponentRef Id="EventSource" />
+    </Feature>
+
+    <!-- Fichiers publiés (exécutable autonome et dépendances), sauf l'exécutable du service déclaré plus bas. -->
+    <ComponentGroup Id="EngineFiles" Directory="ENGINEFOLDER">
+      <Files Include="$(EngineDir)\**">
+        <Exclude Files="$(EngineDir)\ErpConnect.Service.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- Service : compte virtuel NT SERVICE\ERPConnectEngine (jamais LocalSystem), SID restreint, démarrage automatique différé. -->
+    <Component Id="EngineService" Directory="ENGINEFOLDER" Guid="3C0E3F0A-7E0D-4A4B-8F1F-2E9F7A6C5B21">
+      <File Id="EngineExe" Source="$(EngineDir)\ErpConnect.Service.exe" KeyPath="yes" />
+      <ServiceInstall Id="EngineServiceInstall" Name="ERPConnectEngine" DisplayName="ERP Connect Engine"
+                      Description="Moteur d'intégration ERP Connect (flux, planification, coffre de secrets)."
+                      Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT SERVICE\ERPConnectEngine" Vital="yes">
+        <ServiceConfig DelayedAutoStart="yes" OnInstall="yes" OnReinstall="yes" />
+        <ServiceConfig ServiceSid="restricted" OnInstall="yes" OnReinstall="yes" />
+        <ServiceConfig RequiredPrivileges="SeChangeNotifyPrivilege SeImpersonatePrivilege" OnInstall="yes" OnReinstall="yes" />
+        <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="none" RestartServiceDelayInSeconds="60" ResetPeriodInDays="1" />
+      </ServiceInstall>
+      <ServiceControl Id="EngineServiceControl" Name="ERPConnectEngine" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <!--
+      Dossiers de données : héritage coupé. data, logs, backup : SYSTEM, Administrateurs, compte du service.
+      keys : SYSTEM et compte du service uniquement (les administrateurs ne lisent pas les clés protégées par DPAPI).
+    -->
+    <Component Id="DataFolders" Directory="DATAROOT" Guid="9A3B4C5D-1E2F-4A6B-8C7D-0E1F2A3B4C5D" Permanent="yes">
+      <CreateFolder>
+        <util:PermissionEx User="SYSTEM" GenericAll="yes" Inheritable="yes" />
+        <util:PermissionEx User="Administrators" GenericAll="yes" Inheritable="yes" />
+        <util:PermissionEx User="NT SERVICE\ERPConnectEngine" GenericAll="yes" Inheritable="yes" />
+      </CreateFolder>
+      <CreateFolder Directory="DATAFOLDER" />
+      <CreateFolder Directory="LOGSFOLDER" />
+      <CreateFolder Directory="BACKUPFOLDER" />
+      <CreateFolder Directory="KEYSFOLDER">
+        <util:PermissionEx User="SYSTEM" GenericAll="yes" Inheritable="yes" />
+        <util:PermissionEx User="NT SERVICE\ERPConnectEngine" GenericAll="yes" Inheritable="yes" />
+      </CreateFolder>
+    </Component>
+
+    <!-- Source du journal des événements (le compte du service n'a pas le droit de la créer lui-même). -->
+    <Component Id="EventSource" Directory="ENGINEFOLDER" Guid="5B6C7D8E-9F0A-4B1C-8D2E-3F4A5B6C7D8E">
+      <util:EventSource Name="ERP Connect" Log="Application" EventMessageFile="[NETFRAMEWORK40FULLINSTALLROOTDIR64]EventLogMessages.dll" KeyPath="yes" />
+    </Component>
+
+    <!--
+      Groupes locaux « ERP Connect Administrateurs / Concepteurs / Opérateurs / Lecteurs / Auditeurs » :
+      WiX Util ne sait pas créer de groupe local. Action différée prévue (non écrite) : script PowerShell signé
+      installer/scripts/New-ErpConnectGroups.ps1 exécuté par WixQuietExec64 (création si absent, jamais de suppression).
+      Le service fonctionne sans ces groupes (seuls les Administrateurs de la machine accèdent alors au pipe).
+    -->
+  </Package>
+</Wix>

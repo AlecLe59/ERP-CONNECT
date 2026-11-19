@@ -48,6 +48,7 @@ public class ContractSnapshotTests
             "runs.resume", "schedules.list", "schedules.save", "schedules.delete", "alerts.list", "alerts.acknowledge",
             "scripts.test", "scripts.limits",
             "license.get", "license.import", "license.remove",
+            "backup.create", "backup.list",
         ]);
         RpcMethods.All.Select(m => m.Name).ShouldBeUnique();
     }

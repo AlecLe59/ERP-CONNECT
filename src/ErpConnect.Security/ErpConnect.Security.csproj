@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
   </ItemGroup>
   <!-- Clé publique de l'éditeur pour vérifier les licences : fournie par la chaîne de publication
        (dotnet build -p:ErpConnectLicensePublicKey=<base64 SubjectPublicKeyInfo>). Vide : aucune licence vérifiable (évaluation seule). -->

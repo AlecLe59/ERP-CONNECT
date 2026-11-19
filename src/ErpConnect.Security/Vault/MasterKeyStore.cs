@@ -69,6 +69,24 @@ public sealed class MasterKeyStore : IDisposable
         }
     }
 
+    /// <summary>Enregistre une clé restaurée (protégée par le protecteur de cette machine). Échoue si la version existe.</summary>
+    public void Import(int version, byte[] key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (key.Length != SecretCipher.KeySize)
+        {
+            throw new ArgumentException("Clé de 32 octets attendue.", nameof(key));
+        }
+
+        Directory.CreateDirectory(_directory);
+        var blob = _protector.Protect(key);
+        using (var fs = new FileStream(PathFor(version), FileMode.CreateNew, FileAccess.Write, FileShare.None))
+        {
+            fs.Write(blob);
+            fs.Flush(flushToDisk: true);
+        }
+    }
+
     /// <summary>Renvoie une copie de la clé ; l'appelant l'efface après usage.</summary>
     public byte[] Get(int version)
     {

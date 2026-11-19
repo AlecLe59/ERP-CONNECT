@@ -1,4 +1,4 @@
-# ERP Connect – Note de sécurité pour la DSI (mise à jour Phase 7)
+# ERP Connect – Note de sécurité pour la DSI (mise à jour Phase 8)
 
 > État : décrit le comportement **conçu et testé sous Linux pour la partie indépendante de Windows**. Les points
 > marqués « à confirmer sous Windows » n'ont pas encore été vérifiés sur une machine Windows réelle.
@@ -34,7 +34,8 @@
 - **Limite assumée** : un administrateur de la machine peut, avec assez d'efforts, récupérer les secrets d'un
   service qui s'exécute sur cette machine. Le coffre protège contre la lecture des bases, des sauvegardes et des
   journaux, et contre les utilisateurs non administrateurs.
-- Jusqu'à la Phase 8, une sauvegarde ne permet pas de restaurer les secrets sur une autre machine.
+- Une sauvegarde ne restaure les secrets sur une autre machine que si elle a été créée avec une phrase de passe :
+  les clés maîtres sont alors jointes, chiffrées par Argon2id (64 Mio, 3 passes) et AES-256-GCM. La phrase n'est stockée nulle part.
 
 ## Journal d'audit
 
@@ -69,3 +70,12 @@ d'intégrité (écran Journal d'audit, méthode `audit.verifyChain`).
 - Une licence expirée ou absente (après 30 jours d'évaluation) bloque les exécutions et les nouvelles publications,
   jamais l'accès aux données, à l'historique ni au journal d'audit.
 - Les alertes d'exécution sont écrites dans le journal des événements Windows (source « ERP Connect ») pour vos outils de supervision.
+
+## Sauvegarde, restauration et rétention (Phase 8)
+
+- Sauvegarde et restauration réservées à l'Administrateur ERP Connect (création) et à un administrateur de la machine (restauration,
+  service arrêté). Les archives sont dans `C:\ProgramData\ERPConnect\backup` (mêmes droits que les données) ; leur copie hors machine
+  vous incombe. Une archive sans export des clés contient les secrets **chiffrés** et inutilisables ailleurs.
+- La restauration vérifie les empreintes SHA-256 et la taille de chaque fichier avant d'écrire ; l'état précédent est conservé.
+- Les journaux, rejets (qui peuvent contenir des données métier) et clés anti-doublons sont purgés selon les durées configurées ;
+  le journal d'audit n'est jamais purgé.

@@ -75,6 +75,8 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             ["license.get"] = () => null,
             ["license.import"] = () => new LicenseImportParams("{}"),
             ["license.remove"] = () => null,
+            ["backup.create"] = () => new BackupCreateParams("court"),
+            ["backup.list"] = () => null,
         };
 
         var checkedPairs = 0;

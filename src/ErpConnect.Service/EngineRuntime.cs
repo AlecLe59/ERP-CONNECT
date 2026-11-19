@@ -13,6 +13,7 @@ namespace ErpConnect.Service;
 /// </summary>
 internal sealed class EngineRuntime : IAsyncDisposable
 {
+    private static readonly System.Text.Json.JsonSerializerOptions RequestJson = new(System.Text.Json.JsonSerializerDefaults.Web) { MaxDepth = 8 };
     private readonly Func<byte[], IKeyProtector> _protectorFactory;
     private MasterKeyStore? _keys;
     private SecretVault? _vault;
@@ -77,6 +78,13 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public LicenseService License { get; private set; } = null!;
 
+    public BackupService Backup { get; private set; } = null!;
+
+    public RetentionService Retention { get; private set; } = null!;
+
+    /// <summary>Paramètres Argon2id de l'export des clés (réduits par les tests).</summary>
+    public Security.Backup.Argon2Parameters KeyExportParameters { get; init; } = Security.Backup.Argon2Parameters.Default;
+
     /// <summary>Clés de l'éditeur (celle de la compilation ; remplaçable par les tests).</summary>
     public Security.Licensing.LicenseVerifier LicenseVerifier { get; init; } = Security.Licensing.LicenseVerifier.FromBuild();
 
@@ -88,9 +96,16 @@ internal sealed class EngineRuntime : IAsyncDisposable
     public EngineEventHub Events { get; } = new();
 
     /// <summary>Démarrage : toute erreur ici doit arrêter le service avec un message clair.</summary>
+    /// <summary>Déprotection de la phrase de passe d'une demande de restauration (DPAPI machine sous Windows).</summary>
+    public Func<byte[], byte[]>? UnprotectRestorePassphrase { get; init; }
+
+    /// <summary>Résultat de la restauration traitée à ce démarrage (null si aucune demande).</summary>
+    public string? RestoreOutcome { get; private set; }
+
     public async Task StartAsync(CancellationToken ct)
     {
         Paths.EnsureCreated();
+        await ProcessRestoreRequestAsync(ct).ConfigureAwait(false);
         var runner = new MigrationRunner(Paths.Backup);
         MigrationReports =
         [
@@ -116,6 +131,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
                 Core.Audit.AuditOutcomes.Success, "{\"reason\":\"first-start\",\"role\":\"Administrator\"}", "startup"), ct).ConfigureAwait(false);
         }
 
+        await RecordRestoreAsync(ct).ConfigureAwait(false);
         Settings = new SettingsService(new SettingsRepository(Config, Clock), _audit, Events);
         _users = new UserRoleService(assignments, _audit, Principals, Clock);
         Status = new EngineStatusService(Paths, [Config, RunsDb, AuditDb], _vault, Secrets, Clock, protector.Description, Version)
@@ -140,11 +156,74 @@ internal sealed class EngineRuntime : IAsyncDisposable
         Alerts = runRepository;
         Runs = new RunService(runRepository, Flows, Connections, _audit, Clock, Events, RunOptions) { Entitlements = license };
         Scheduler = new SchedulerService(new ScheduleRepository(Config), Flows, Runs, _audit, Clock, runRepository, Events);
+        Retention = new RetentionService(Settings, runRepository, _audit, Clock);
+        Backup = new BackupService(Paths, [Config, RunsDb, AuditDb], _keys, _audit, Clock, Installation.Id, Version) { KeyExportParameters = KeyExportParameters };
         await Runs.RecoverInterruptedAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task ProcessRestoreRequestAsync(CancellationToken ct)
+    {
+        var path = Path.Combine(Paths.Data, RestoreRequest.FileName);
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        var request = System.Text.Json.JsonSerializer.Deserialize<RestoreRequest>(await File.ReadAllTextAsync(path, ct).ConfigureAwait(false),
+            RequestJson)!;
+        File.Delete(path); // une seule tentative, la phrase de passe protégée disparaît du disque
+        string? passphrase = null;
+        try
+        {
+            if (request.ProtectedPassphrase is not null)
+            {
+                var bytes = (UnprotectRestorePassphrase ?? throw new InvalidOperationException("Déprotection de la phrase de passe indisponible."))(Convert.FromBase64String(request.ProtectedPassphrase));
+                passphrase = System.Text.Encoding.UTF8.GetString(bytes);
+                System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
+            }
+
+            var report = await BackupService.RestoreAsync(request.ArchivePath, Paths, _protectorFactory, passphrase, request.DiscardSecrets, Clock.UtcNow, ct).ConfigureAwait(false);
+            RestoreOutcome = $"Restauration de la sauvegarde du {report.Manifest.CreatedAt:yyyy-MM-dd HH:mm} faite ; état précédent conservé dans {report.PreviousStateFolder}.";
+        }
+        catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or System.Security.Cryptography.CryptographicException or IOException or FormatException)
+        {
+            // Rien n'a été modifié si la vérification échoue : le service démarre sur l'état actuel et l'échec est inscrit au journal.
+            RestoreOutcome = "Restauration refusée : " + ex.Message;
+            await File.WriteAllTextAsync(Path.Combine(Paths.Data, "restore-failed.json"), System.Text.Json.JsonSerializer.Serialize(new { request.ArchivePath, error = ex.Message, at = Clock.UtcNow }), ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Après une restauration (service arrêté), le premier démarrage l'inscrit au journal d'audit puis retire le marqueur.</summary>
+    private async Task RecordRestoreAsync(CancellationToken ct)
+    {
+        var failed = Path.Combine(Paths.Data, "restore-failed.json");
+        if (File.Exists(failed))
+        {
+            var why = await File.ReadAllTextAsync(failed, ct).ConfigureAwait(false);
+            await _audit!.AppendAsync(new Core.Audit.AuditEntry("S-1-5-18", "ERP Connect Engine", "backup.restore", "backup", Core.Audit.AuditOutcomes.Failure,
+                why.Length <= 4096 ? why : "{}", "startup"), ct).ConfigureAwait(false);
+            File.Delete(failed);
+        }
+
+        var marker = Path.Combine(Paths.Data, BackupService.RestoreMarker);
+        if (!File.Exists(marker))
+        {
+            return;
+        }
+
+        var details = await File.ReadAllTextAsync(marker, ct).ConfigureAwait(false);
+        await _audit!.AppendAsync(new Core.Audit.AuditEntry("S-1-5-18", "ERP Connect Engine", "backup.restore", "backup", Core.Audit.AuditOutcomes.Success,
+            details.Length <= 4096 ? details : "{}", "startup"), ct).ConfigureAwait(false);
+        File.Delete(marker);
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Retention is not null)
+        {
+            await Retention.DisposeAsync().ConfigureAwait(false);
+        }
+
         if (Scheduler is not null)
         {
             await Scheduler.DisposeAsync().ConfigureAwait(false);
@@ -155,6 +234,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
             await Runs.DisposeAsync().ConfigureAwait(false);
         }
 
+        Backup?.Dispose();
         _vault?.Dispose();
         _keys?.Dispose();
         _audit?.Dispose();

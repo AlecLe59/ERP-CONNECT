@@ -161,3 +161,16 @@ public interface IRunRepository
 
     Task<IReadOnlyList<RunRecord>> InStatusAsync(IReadOnlyList<RunStatus> statuses, CancellationToken ct);
 }
+
+/// <summary>Dates limites de conservation (tout ce qui est antérieur est supprimé).</summary>
+public sealed record RetentionCutoffs(DateTimeOffset RunHeaders, DateTimeOffset SucceededLogs, DateTimeOffset FailedLogs, DateTimeOffset Rejects, DateTimeOffset DedupKeys);
+
+public sealed record PurgeCounts(long Runs, long Logs, long Rejects, long DedupKeys, long Alerts)
+{
+    public long Total => Runs + Logs + Rejects + DedupKeys + Alerts;
+}
+
+public interface IRetentionStore
+{
+    Task<PurgeCounts> PurgeAsync(RetentionCutoffs cutoffs, CancellationToken ct);
+}

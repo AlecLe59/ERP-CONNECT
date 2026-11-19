@@ -65,3 +65,37 @@ describe("Settings", () => {
     expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
   });
 });
+
+describe("Sauvegardes", () => {
+  it("crée une sauvegarde avec export des clés et l'affiche", async () => {
+    const engine = engineWithSettings(ALL_PERMISSIONS);
+    let backups: unknown[] = [];
+    engine.handlers["backup.list"] = () => ({ backups, folder: "C:\\ProgramData\\ERPConnect\\backup" });
+    engine.handlers["backup.create"] = () => {
+      const b = { fileName: "erpconnect-backup-20261120.zip", size: 2048, createdAt: "2026-11-20T10:00:00Z", includesKeys: true };
+      backups = [b];
+      return b;
+    };
+    renderWithEngine(<Settings />, engine);
+    expect(await screen.findByText("Aucune sauvegarde.")).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText(/Inclure les clés/));
+    await userEvent.type(screen.getByLabelText(/Phrase de passe/), "une phrase assez longue");
+    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder maintenant" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("erpconnect-backup-20261120.zip");
+    expect(await screen.findByRole("cell", { name: "erpconnect-backup-20261120.zip" })).toBeInTheDocument();
+    expect((engine.calls.find((c) => c.method === "backup.create")!.params as { passphrase: string }).passphrase).toBe("une phrase assez longue");
+  });
+
+  it("n'envoie aucune phrase de passe sans export des clés et masque la création pour un lecteur", async () => {
+    const engine = engineWithSettings(ALL_PERMISSIONS);
+    engine.handlers["backup.create"] = () => ({ fileName: "b.zip", size: 1, createdAt: "2026-11-20T10:00:00Z", includesKeys: false });
+    const { unmount } = renderWithEngine(<Settings />, engine);
+    await userEvent.click(await screen.findByRole("button", { name: "Sauvegarder maintenant" }));
+    await screen.findByText(/Sauvegarde créée/);
+    expect((engine.calls.find((c) => c.method === "backup.create")!.params as { passphrase: string | null }).passphrase).toBeNull();
+    unmount();
+    renderWithEngine(<Settings />, engineWithSettings(OPERATOR_PERMISSIONS));
+    expect(await screen.findByText("Aucune sauvegarde.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sauvegarder maintenant" })).toBeNull();
+  });
+});
