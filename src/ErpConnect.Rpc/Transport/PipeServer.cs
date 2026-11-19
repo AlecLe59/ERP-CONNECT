@@ -140,43 +140,70 @@ public sealed partial class PipeServer : IAsyncDisposable
     private async Task AcceptLoopAsync(CancellationToken ct)
     {
         var next = _firstInstance;
-        while (!ct.IsCancellationRequested)
+        try
         {
-            await _slots.WaitAsync(ct).ConfigureAwait(false);
-            NamedPipeServerStream? pipe = null;
-            try
+            while (!ct.IsCancellationRequested)
             {
-                pipe = next ?? _options.CreatePipe(_options.PipeName, false);
-                next = null;
-                _firstInstance = null;
-                await pipe.WaitForConnectionAsync(ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                if (pipe is not null)
+                await _slots.WaitAsync(ct).ConfigureAwait(false);
+                NamedPipeServerStream? pipe = null;
+                try
                 {
-                    await pipe.DisposeAsync().ConfigureAwait(false);
+                    pipe = next ?? _options.CreatePipe(_options.PipeName, false);
+                    next = null;
+                    _firstInstance = null;
+                    await pipe.WaitForConnectionAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    if (pipe is not null)
+                    {
+                        await pipe.DisposeAsync().ConfigureAwait(false);
+                    }
+
+                    _slots.Release();
+                    return;
+                }
+                catch (IOException ex)
+                {
+                    // Client parti avant l'acceptation (ERROR_NO_DATA sous Windows) : l'instance doit être libérée,
+                    // sinon les instances fuient jusqu'au plafond du pipe et plus aucun client ne peut se connecter.
+                    if (pipe is not null)
+                    {
+                        await pipe.DisposeAsync().ConfigureAwait(false);
+                    }
+
+                    _slots.Release();
+                    LogAcceptError(_logger, ex.Message);
+                    await Task.Delay(100, ct).ConfigureAwait(false);
+                    continue;
                 }
 
-                _slots.Release();
-                return;
+                // L'instance suivante est créée AVANT de servir la connexion acceptée : il y a toujours une instance en écoute.
+                // Sous Linux, le socket d'écoute est fermé quand plus aucune instance n'existe, et un client arrivé
+                // entre-temps voyait sa connexion réinitialisée. Sous Windows, si le plafond d'instances est atteint,
+                // l'instance sera créée au tour suivant, quand un emplacement se libère.
+                next = TryCreateNext();
+                _ = Task.Run(() => ServeAsync(pipe, ct), CancellationToken.None);
             }
-            catch (IOException ex)
+        }
+        finally
+        {
+            if (next is not null)
             {
-                // Client parti avant l'acceptation (ERROR_NO_DATA sous Windows) : l'instance doit être libérée,
-                // sinon les instances fuient jusqu'au plafond du pipe et plus aucun client ne peut se connecter.
-                if (pipe is not null)
-                {
-                    await pipe.DisposeAsync().ConfigureAwait(false);
-                }
-
-                _slots.Release();
-                LogAcceptError(_logger, ex.Message);
-                await Task.Delay(100, ct).ConfigureAwait(false);
-                continue;
+                await next.DisposeAsync().ConfigureAwait(false);
             }
+        }
+    }
 
-            _ = Task.Run(() => ServeAsync(pipe, ct), CancellationToken.None);
+    private NamedPipeServerStream? TryCreateNext()
+    {
+        try
+        {
+            return _options.CreatePipe(_options.PipeName, false);
+        }
+        catch (IOException)
+        {
+            return null;
         }
     }
 

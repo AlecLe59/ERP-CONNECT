@@ -58,7 +58,7 @@ public sealed class ScriptRpcTests : IAsyncLifetime
         for (var i = 0; i < 100; i++)
         {
             detail = (await c.CallAsync("runs.get", new IdParams(id))).Result()["run"];
-            if (detail!["status"]!.GetValue<string>() is not ("queued" or "running"))
+            if (detail!["status"]!.GetValue<string>() is not ("pending" or "running"))
             {
                 break;
             }
