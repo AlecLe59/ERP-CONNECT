@@ -44,6 +44,9 @@ public static class ExpressionCompiler
     /// <summary>Fonctions disponibles (nom, signature, aide) pour l'éditeur.</summary>
     public static IReadOnlyList<(string Name, string Signature, string Help)> FunctionCatalog { get; } = Functions.Catalog.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
+    /// <summary>Conversion en texte selon les règles du langage (nombres en culture invariante, null → vide).</summary>
+    public static string ToText(object? value) => Values.Text(value);
+
     public static CompiledExpression? TryCompile(string? text, out string? error)
     {
         error = null;

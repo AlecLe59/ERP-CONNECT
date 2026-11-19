@@ -173,23 +173,23 @@
       "erpconnect.rpc": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Contracts": "[0.4.0, )",
-          "ErpConnect.Core": "[0.4.0, )",
-          "ErpConnect.Security": "[0.4.0, )",
+          "ErpConnect.Contracts": "[0.5.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
+          "ErpConnect.Security": "[0.5.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.15, )"
         }
       },
       "erpconnect.security": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.4.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.15, )"
         }
       },
       "erpconnect.storage": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.4.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
           "Microsoft.Data.Sqlite": "[10.0.15, )"
         }
       },

@@ -10,4 +10,7 @@
     <ProjectReference Include="..\ErpConnect.Connectors\ErpConnect.Connectors.csproj" />
     <ProjectReference Include="..\ErpConnect.Flows\ErpConnect.Flows.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Cronos" />
+  </ItemGroup>
 </Project>

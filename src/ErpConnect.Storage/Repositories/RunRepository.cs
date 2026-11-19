@@ -5,14 +5,14 @@ using Microsoft.Data.Sqlite;
 
 namespace ErpConnect.Storage.Repositories;
 
-public sealed class RunRepository : IRunRepository
+public sealed class RunRepository : IRunRepository, IDedupRegistry, IAlertRepository
 {
     private readonly SqliteDatabase _db;
 
     public RunRepository(SqliteDatabase runsDb) => _db = runsDb;
 
     private const string Columns =
-        "Id, FlowId, FlowVersion, Status, TriggeredBy, ParentRunId, CreatedAt, StartedAt, EndedAt, ReadCount, WrittenCount, RejectedCount, SkippedCount, Checkpoint, Error, TriggerKind";
+        "Id, FlowId, FlowVersion, Status, TriggeredBy, ParentRunId, CreatedAt, StartedAt, EndedAt, ReadCount, WrittenCount, RejectedCount, SkippedCount, Checkpoint, Error, TriggerKind, ErrorKind";
 
     private static string Iso(DateTimeOffset d) => d.ToString("O", CultureInfo.InvariantCulture);
 
@@ -22,7 +22,7 @@ public sealed class RunRepository : IRunRepository
         r.GetString(0), r.GetString(1), r.GetInt64(2), (RunStatus)r.GetInt32(3), r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5),
         DateTimeOffset.Parse(r.GetString(6), CultureInfo.InvariantCulture), Date(r, 7), Date(r, 8),
         r.GetInt64(9), r.GetInt64(10), r.GetInt64(11), r.GetInt64(12), r.IsDBNull(13) ? null : r.GetString(13), r.IsDBNull(14) ? null : r.GetString(14),
-        r.IsDBNull(15) ? null : r.GetString(15));
+        r.IsDBNull(15) ? null : r.GetString(15), r.IsDBNull(16) ? null : r.GetString(16));
 
     public async Task CreateAsync(RunRecord run, CancellationToken ct)
     {
@@ -117,6 +117,12 @@ public sealed class RunRepository : IRunRepository
             await ins.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
+        if (progress.NewDedupKeys is { Count: > 0 } keys)
+        {
+            var flowId = await FlowOfAsync(c, tx, id, ct).ConfigureAwait(false);
+            await InsertKeysAsync(c, tx, flowId, id, keys, DateTimeOffset.UtcNow, ct).ConfigureAwait(false);
+        }
+
         await using (var u = c.Command(
             "UPDATE Run SET ReadCount = $r, WrittenCount = $w, RejectedCount = $j, SkippedCount = $s, Checkpoint = $cp WHERE Id = $id;", tx)
             .With("$id", id).With("$r", progress.Read).With("$w", progress.Written).With("$j", progress.Rejected).With("$s", progress.Skipped).With("$cp", progress.Checkpoint))
@@ -127,10 +133,10 @@ public sealed class RunRepository : IRunRepository
         await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetErrorAsync(string id, string error, CancellationToken ct)
+    public async Task SetErrorAsync(string id, string error, CancellationToken ct, string? kind = null)
     {
         await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
-        await using var u = c.Command("UPDATE Run SET Error = $e WHERE Id = $id;").With("$id", id).With("$e", error);
+        await using var u = c.Command("UPDATE Run SET Error = $e, ErrorKind = $k WHERE Id = $id;").With("$id", id).With("$e", error).With("$k", kind);
         await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -188,5 +194,96 @@ public sealed class RunRepository : IRunRepository
         }
 
         return all;
+    }
+
+    private static async Task<string> FlowOfAsync(SqliteConnection c, SqliteTransaction tx, string runId, CancellationToken ct)
+    {
+        await using var q = c.Command("SELECT FlowId FROM Run WHERE Id = $id;", tx).With("$id", runId);
+        return (string?)await q.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? throw new InvalidOperationException("Exécution inconnue.");
+    }
+
+    private static async Task InsertKeysAsync(SqliteConnection c, SqliteTransaction tx, string flowId, string runId, IReadOnlyCollection<string> keys, DateTimeOffset at, CancellationToken ct)
+    {
+        await using var ins = c.Command("INSERT OR IGNORE INTO DedupKey (FlowId, KeyHash, RunId, At) VALUES ($f, $k, $r, $at);", tx)
+            .With("$f", flowId).With("$k", string.Empty).With("$r", runId).With("$at", Iso(at));
+        foreach (var k in keys)
+        {
+            ins.Parameters["$k"].Value = k;
+            await ins.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+    }
+
+    public async Task<IReadOnlySet<string>> ExistingAsync(string flowId, IReadOnlyCollection<string> keyHashes, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(keyHashes);
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        if (keyHashes.Count == 0)
+        {
+            return found;
+        }
+
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        foreach (var chunk in keyHashes.Distinct(StringComparer.Ordinal).Chunk(500))
+        {
+            var names = chunk.Select((_, i) => "$k" + i.ToString(CultureInfo.InvariantCulture)).ToArray();
+            await using var q = c.Command($"SELECT KeyHash FROM DedupKey WHERE FlowId = $f AND KeyHash IN ({string.Join(',', names)});").With("$f", flowId);
+            for (var i = 0; i < chunk.Length; i++)
+            {
+                q.Parameters.AddWithValue(names[i], chunk[i]);
+            }
+
+            await using var r = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await r.ReadAsync(ct).ConfigureAwait(false))
+            {
+                found.Add(r.GetString(0));
+            }
+        }
+
+        return found;
+    }
+
+    public async Task RegisterAsync(string flowId, string runId, IReadOnlyCollection<string> keyHashes, DateTimeOffset at, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(keyHashes);
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        await using var tx = (SqliteTransaction)await c.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await InsertKeysAsync(c, tx, flowId, runId, keyHashes, at, ct).ConfigureAwait(false);
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    private static AlertRecord ReadAlert(SqliteDataReader r) => new(
+        r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3), r.GetString(4),
+        DateTimeOffset.Parse(r.GetString(5), CultureInfo.InvariantCulture), Date(r, 6), r.IsDBNull(7) ? null : r.GetString(7));
+
+    public async Task<AlertRecord> RaiseAsync(string flowId, string? runId, string severity, string message, DateTimeOffset at, CancellationToken ct)
+    {
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        await using var ins = c.Command("INSERT INTO Alert (FlowId, RunId, Severity, Message, CreatedAt) VALUES ($f, $r, $s, $m, $at) RETURNING Id;")
+            .With("$f", flowId).With("$r", runId).With("$s", severity).With("$m", message).With("$at", Iso(at));
+        var id = (long)(await ins.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+        return new AlertRecord(id, flowId, runId, severity, message, at, null, null);
+    }
+
+    public async Task<IReadOnlyList<AlertRecord>> ListAsync(bool openOnly, int limit, CancellationToken ct)
+    {
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        await using var q = c.Command($"SELECT Id, FlowId, RunId, Severity, Message, CreatedAt, AcknowledgedAt, AcknowledgedBy FROM Alert {(openOnly ? "WHERE AcknowledgedAt IS NULL" : string.Empty)} ORDER BY Id DESC LIMIT $l;")
+            .With("$l", limit);
+        await using var r = await q.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var list = new List<AlertRecord>();
+        while (await r.ReadAsync(ct).ConfigureAwait(false))
+        {
+            list.Add(ReadAlert(r));
+        }
+
+        return list;
+    }
+
+    public async Task<bool> AcknowledgeAsync(long id, string by, DateTimeOffset at, CancellationToken ct)
+    {
+        await using var c = await _db.OpenAsync(ct).ConfigureAwait(false);
+        await using var u = c.Command("UPDATE Alert SET AcknowledgedAt = $at, AcknowledgedBy = $by WHERE Id = $id AND AcknowledgedAt IS NULL;")
+            .With("$id", id).With("$at", Iso(at)).With("$by", by);
+        return await u.ExecuteNonQueryAsync(ct).ConfigureAwait(false) == 1;
     }
 }

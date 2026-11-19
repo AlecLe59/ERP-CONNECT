@@ -436,8 +436,9 @@
       "erpconnect.connectors": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.4.0, )",
+          "ErpConnect.Connectors.Sdk": "[0.5.0, )",
           "FluentFTP": "[55.1.0, )",
+          "Microsoft.Data.Sqlite": "[10.0.15, )",
           "MiniExcel": "[1.47.1, )",
           "SSH.NET": "[2026.0.1, )"
         }
@@ -454,48 +455,49 @@
       "erpconnect.engine": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors": "[0.4.0, )",
-          "ErpConnect.Connectors.Sdk": "[0.4.0, )",
-          "ErpConnect.Core": "[0.4.0, )",
-          "ErpConnect.Flows": "[0.4.0, )",
-          "ErpConnect.Security": "[0.4.0, )",
-          "ErpConnect.Storage": "[0.4.0, )"
+          "Cronos": "[0.13.0, )",
+          "ErpConnect.Connectors": "[0.5.0, )",
+          "ErpConnect.Connectors.Sdk": "[0.5.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
+          "ErpConnect.Flows": "[0.5.0, )",
+          "ErpConnect.Security": "[0.5.0, )",
+          "ErpConnect.Storage": "[0.5.0, )"
         }
       },
       "erpconnect.flows": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors.Sdk": "[0.4.0, )"
+          "ErpConnect.Connectors.Sdk": "[0.5.0, )"
         }
       },
       "erpconnect.rpc": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Contracts": "[0.4.0, )",
-          "ErpConnect.Core": "[0.4.0, )",
-          "ErpConnect.Security": "[0.4.0, )",
+          "ErpConnect.Contracts": "[0.5.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
+          "ErpConnect.Security": "[0.5.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.15, )"
         }
       },
       "erpconnect.security": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.4.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.15, )"
         }
       },
       "erpconnect.service": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Connectors": "[0.4.0, )",
-          "ErpConnect.Connectors.Sdk": "[0.4.0, )",
-          "ErpConnect.Contracts": "[0.4.0, )",
-          "ErpConnect.Core": "[0.4.0, )",
-          "ErpConnect.Engine": "[0.4.0, )",
-          "ErpConnect.Flows": "[0.4.0, )",
-          "ErpConnect.Rpc": "[0.4.0, )",
-          "ErpConnect.Security": "[0.4.0, )",
-          "ErpConnect.Storage": "[0.4.0, )",
+          "ErpConnect.Connectors": "[0.5.0, )",
+          "ErpConnect.Connectors.Sdk": "[0.5.0, )",
+          "ErpConnect.Contracts": "[0.5.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
+          "ErpConnect.Engine": "[0.5.0, )",
+          "ErpConnect.Flows": "[0.5.0, )",
+          "ErpConnect.Rpc": "[0.5.0, )",
+          "ErpConnect.Security": "[0.5.0, )",
+          "ErpConnect.Storage": "[0.5.0, )",
           "Microsoft.Extensions.Hosting": "[10.0.15, )",
           "Microsoft.Extensions.Hosting.WindowsServices": "[10.0.15, )",
           "Serilog.Extensions.Hosting": "[10.0.0, )",
@@ -506,9 +508,15 @@
       "erpconnect.storage": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.4.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
           "Microsoft.Data.Sqlite": "[10.0.15, )"
         }
+      },
+      "Cronos": {
+        "type": "CentralTransitive",
+        "requested": "[0.13.0, )",
+        "resolved": "0.13.0",
+        "contentHash": "Nkve+Yi0+ol3ntSBRHeW0ka9cJQ8vndSUvvkXqF9LVqwpoqWueyxu/HS275r98RDOmF7/mzRnZW5XXUBXob+TA=="
       },
       "FluentFTP": {
         "type": "CentralTransitive",

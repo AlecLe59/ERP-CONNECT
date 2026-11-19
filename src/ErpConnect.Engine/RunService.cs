@@ -37,9 +37,14 @@ public sealed class RunService : IAsyncDisposable
     private readonly SemaphoreSlim _slots;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly ConcurrentDictionary<string, ActiveRun> _active = new(StringComparer.Ordinal);
+    private readonly IDedupRegistry? _dedup;
+    private readonly IAlertRepository? _alerts;
 
-    public RunService(IRunRepository runs, FlowService flows, ConnectionService connections, IAuditLog audit, IClock clock, IEngineEventSink? events = null, RunServiceOptions? options = null)
+    public RunService(IRunRepository runs, FlowService flows, ConnectionService connections, IAuditLog audit, IClock clock, IEngineEventSink? events = null, RunServiceOptions? options = null,
+        IDedupRegistry? dedup = null, IAlertRepository? alerts = null)
     {
+        _dedup = dedup ?? runs as IDedupRegistry;
+        _alerts = alerts ?? runs as IAlertRepository;
         _runs = runs;
         _flows = flows;
         _connections = connections;
@@ -99,6 +104,60 @@ public sealed class RunService : IAsyncDisposable
         _active[run.Id] = active;
         active.Task = Task.Run(() => ExecuteGuardedAsync(run, definition, active), CancellationToken.None);
         return run;
+    }
+
+    /// <summary>
+    /// Reprise : une exécution Suspendue repart sur place depuis son point de reprise (compteurs conservés) ;
+    /// une exécution en Échec pour erreur transitoire crée une exécution fille qui repart du point de reprise de la mère.
+    /// </summary>
+    public async Task<RunRecord> ResumeAsync(CallerIdentity caller, string runId, string correlationId, CancellationToken ct, string trigger = "resume")
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        var run = await _runs.GetAsync(runId, ct).ConfigureAwait(false) ?? throw new EngineException(EngineErrorKind.NotFound, "Exécution introuvable.");
+        if (run.Status == RunStatus.Failed)
+        {
+            if (run.ErrorKind != "transient")
+            {
+                throw new EngineException(EngineErrorKind.Conflict, "Seule une exécution en échec pour erreur transitoire (réseau, indisponibilité) peut être reprise ; corrigez la cause puis relancez.");
+            }
+
+            return await StartAsync(caller, run.FlowId, false, correlationId, ct, trigger, run).ConfigureAwait(false);
+        }
+
+        if (run.Status != RunStatus.Suspended)
+        {
+            throw new EngineException(EngineErrorKind.Conflict, "Seule une exécution suspendue ou en échec transitoire peut être reprise.");
+        }
+
+        var (_, definition) = await _flows.LoadAsync(run.FlowId, run.FlowVersion, ct).ConfigureAwait(false);
+        if (!await _runs.TransitionAsync(run.Id, RunStatus.Suspended, RunStatus.Pending, caller.UserName, "Reprise", _clock.UtcNow, ct).ConfigureAwait(false))
+        {
+            throw new EngineException(EngineErrorKind.Conflict, "L'exécution a changé d'état entre-temps.");
+        }
+
+        await _audit.AppendAsync(new AuditEntry(caller.UserSid, caller.UserName, "runs.resume", $"run/{run.Id}", AuditOutcomes.Success,
+            JsonSerializer.Serialize(new { mode = "inPlace", checkpoint = run.Checkpoint is not null }), correlationId), ct).ConfigureAwait(false);
+        var pending = run with { Status = RunStatus.Pending };
+        _events.RunChanged(run.Id, run.FlowId, RunStatus.Pending);
+        var active = new ActiveRun(Task.CompletedTask);
+        _active[run.Id] = active;
+        active.Task = Task.Run(() => ExecuteGuardedAsync(pending, definition, active), CancellationToken.None);
+        return pending;
+    }
+
+    /// <summary>Indique si une exécution de ce flux est en cours dans cette instance (le planificateur évite les chevauchements).</summary>
+    public async Task<bool> HasActiveRunAsync(string flowId, CancellationToken ct)
+    {
+        foreach (var id in _active.Keys)
+        {
+            var r = await _runs.GetAsync(id, ct).ConfigureAwait(false);
+            if (r?.FlowId == flowId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private string NewRunId() => $"{_clock.UtcNow.UtcDateTime:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..8]}";
@@ -168,7 +227,7 @@ public sealed class RunService : IAsyncDisposable
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            await FailAsync(run, $"Erreur interne : {ex.GetType().Name}", CancellationToken.None).ConfigureAwait(false);
+            await FailAsync(run, $"Erreur interne : {ex.GetType().Name}", CancellationToken.None, "internal").ConfigureAwait(false);
         }
         finally
         {
@@ -177,7 +236,7 @@ public sealed class RunService : IAsyncDisposable
         }
     }
 
-    private async Task FailAsync(RunRecord run, string error, CancellationToken ct)
+    private async Task FailAsync(RunRecord run, string error, CancellationToken ct, string kind = "permanent")
     {
         var current = await _runs.GetAsync(run.Id, ct).ConfigureAwait(false);
         if (current is null || current.Status.IsTerminal())
@@ -185,7 +244,7 @@ public sealed class RunService : IAsyncDisposable
             return;
         }
 
-        await _runs.SetErrorAsync(run.Id, error, ct).ConfigureAwait(false);
+        await _runs.SetErrorAsync(run.Id, error, ct, kind).ConfigureAwait(false);
         await _runs.LogAsync(run.Id, _clock.UtcNow, "error", error, ct).ConfigureAwait(false);
         if (current.Status == RunStatus.Pending)
         {
@@ -194,6 +253,30 @@ public sealed class RunService : IAsyncDisposable
 
         await _runs.TransitionAsync(run.Id, RunStatus.Running, RunStatus.Failed, "engine", Truncate(error, 500), _clock.UtcNow, ct).ConfigureAwait(false);
         _events.RunChanged(run.Id, run.FlowId, RunStatus.Failed);
+        await RaiseAlertAsync(run, "error", $"Exécution {run.Id} en échec : {Truncate(error, 400)}", ct).ConfigureAwait(false);
+    }
+
+    private async Task RaiseAlertAsync(RunRecord run, string severity, string message, CancellationToken ct)
+    {
+        if (_alerts is null)
+        {
+            return;
+        }
+
+        var alert = await _alerts.RaiseAsync(run.FlowId, run.Id, severity, message, _clock.UtcNow, ct).ConfigureAwait(false);
+        _events.AlertRaised(alert.Id, alert.FlowId, alert.Severity, alert.Message);
+    }
+
+    /// <summary>Clé métier → empreinte SHA-256 (hex, 32 premiers caractères). Une clé vide ou nulle est refusée.</summary>
+    internal static string DedupHash(object? value)
+    {
+        var text = ExpressionCompiler.ToText(value);
+        if (text.Length == 0)
+        {
+            throw new ExpressionException("clé vide.");
+        }
+
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)))[..32];
     }
 
     private static string Truncate(string s, int n) => s.Length > n ? s[..n] : s;
@@ -234,6 +317,25 @@ public sealed class RunService : IAsyncDisposable
         }
 
         long read = 0, written = 0, rejected = 0, skipped = 0, batchNo = 0;
+        if (cursor is not null && run.ParentRunId is null)
+        {
+            (read, written, rejected, skipped) = (run.ReadCount, run.WrittenCount, run.RejectedCount, run.SkippedCount); // reprise sur place
+        }
+
+        CompiledExpression? dedupKey = null;
+        if (!string.IsNullOrWhiteSpace(def.DedupKey))
+        {
+            dedupKey = ExpressionCompiler.Compile(def.DedupKey);
+            if (_dedup is null)
+            {
+                await FailAsync(run, "Registre anti-doublons indisponible.", ct, "internal").ConfigureAwait(false);
+                return;
+            }
+        }
+
+        var committed = (Read: read, Written: written, Rejected: rejected, Skipped: skipped, Cursor: cursor);
+        var seenThisRun = new HashSet<string>(StringComparer.Ordinal);
+        var pendingKeys = new List<string>(); // cible fichier : enregistrées seulement après publication
         var cancelled = false;
         string? fatal = null;
         var reader = sourceConnector.CreateReader(sourceSettings, new ReadRequest(def.Source.Resource, def.BatchSize, FlowDefinition.ToDictionary(def.Source.Options)));
@@ -248,9 +350,39 @@ public sealed class RunService : IAsyncDisposable
                 {
                     batchNo++;
                     var rejects = new List<RunRejectRecord>();
-                    var toWrite = new List<(int Index, Record Record, Record Source)>(batch.Records.Count);
+                    var toWrite = new List<(int Index, Record Record, Record Source, string? Key)>(batch.Records.Count);
+                    string?[] keys = new string?[batch.Records.Count];
+                    IReadOnlySet<string> known = new HashSet<string>();
+                    if (dedupKey is not null)
+                    {
+                        for (var i = 0; i < batch.Records.Count; i++)
+                        {
+                            try
+                            {
+                                keys[i] = DedupHash(dedupKey.Evaluate(batch.Records[i]));
+                            }
+                            catch (ExpressionException ex)
+                            {
+                                rejects.Add(Reject(run.Id, batchNo, i, "mapping", $"Clé anti-doublon : {ex.Message}", batch.Records[i]));
+                            }
+                        }
+
+                        known = await _dedup!.ExistingAsync(run.FlowId, keys.OfType<string>().ToList(), ct).ConfigureAwait(false);
+                    }
+
                     for (var i = 0; i < batch.Records.Count; i++)
                     {
+                        if (dedupKey is not null && keys[i] is null)
+                        {
+                            continue; // déjà rejeté (clé non calculable)
+                        }
+
+                        if (keys[i] is { } k && (known.Contains(k) || !seenThisRun.Add(k)))
+                        {
+                            skipped++; // doublon : déjà transmis par une exécution précédente ou plus haut dans celle-ci
+                            continue;
+                        }
+
                         var m = pipeline.Process(batch.Records[i]);
                         if (m.Fate == RecordFate.Filtered)
                         {
@@ -262,18 +394,29 @@ public sealed class RunService : IAsyncDisposable
                         }
                         else
                         {
-                            toWrite.Add((i, m.Output, batch.Records[i]));
+                            toWrite.Add((i, m.Output, batch.Records[i], keys[i]));
                         }
                     }
 
                     if (toWrite.Count > 0)
                     {
                         var outcomes = await WriteWithRetryAsync(writer, toWrite.Select(t => t.Record).ToList(), ct).ConfigureAwait(false);
+                        if (outcomes.FirstOrDefault(o => !o.Success && o.Kind == ErrorKind.Transient) is { } stillTransient)
+                        {
+                            // Indisponibilité persistante de la cible : ce n'est pas un rejet métier. Le lot n'est pas confirmé
+                            // et sera renvoyé en entier à la reprise (au moins une fois).
+                            throw new ConnectorException(ErrorKind.Transient, stillTransient.Error ?? "Cible indisponible.");
+                        }
+
                         for (var k = 0; k < outcomes.Count; k++)
                         {
                             if (outcomes[k].Success)
                             {
                                 written++;
+                                if (toWrite[k].Key is { } key)
+                                {
+                                    pendingKeys.Add(key);
+                                }
                             }
                             else
                             {
@@ -284,7 +427,15 @@ public sealed class RunService : IAsyncDisposable
 
                     read += batch.Records.Count;
                     rejected += rejects.Count;
-                    await _runs.SaveProgressAsync(run.Id, new RunProgress(read, written, rejected, skipped, batch.Cursor, rejects), ct).ConfigureAwait(false);
+                    IReadOnlyList<string>? committedKeys = null;
+                    if (!transactional && pendingKeys.Count > 0)
+                    {
+                        committedKeys = pendingKeys.ToArray();
+                        pendingKeys.Clear();
+                    }
+
+                    await _runs.SaveProgressAsync(run.Id, new RunProgress(read, written, rejected, skipped, batch.Cursor, rejects, committedKeys), ct).ConfigureAwait(false);
+                    committed = (read, written, rejected, skipped, batch.Cursor);
                     if (rejected >= def.MaxRejects)
                     {
                         fatal = $"Arrêt : {rejected} rejet(s), seuil de {def.MaxRejects} atteint.";
@@ -301,14 +452,19 @@ public sealed class RunService : IAsyncDisposable
                 if (!cancelled && fatal is null && rejected == 0)
                 {
                     await writer.CompleteAsync(ct).ConfigureAwait(false);
+                    if (pendingKeys.Count > 0)
+                    {
+                        await _dedup!.RegisterAsync(run.FlowId, run.Id, pendingKeys, _clock.UtcNow, ct).ConfigureAwait(false);
+                    }
                 }
             }
         }
         catch (Exception ex) when (ex is ConnectorException or IOException or UnauthorizedAccessException or InvalidOperationException && !ct.IsCancellationRequested)
         {
-            await _runs.SaveProgressAsync(run.Id, new RunProgress(read, written, rejected, skipped, null, []), CancellationToken.None).ConfigureAwait(false);
-            var kind = ConnectorException.Classify(ex) == ErrorKind.Transient ? "transitoire" : "permanente";
-            await FailAsync(run, $"Erreur {kind} : {ex.Message}", ct).ConfigureAwait(false);
+            // Seule la progression confirmée est conservée : le point de reprise reste celui du dernier lot enregistré.
+            await _runs.SaveProgressAsync(run.Id, new RunProgress(committed.Read, committed.Written, committed.Rejected, committed.Skipped, transactional ? null : committed.Cursor, []), CancellationToken.None).ConfigureAwait(false);
+            var transient = ConnectorException.Classify(ex) == ErrorKind.Transient;
+            await FailAsync(run, $"Erreur {(transient ? "transitoire" : "permanente")} : {ex.Message}", ct, transient ? "transient" : "permanent").ConfigureAwait(false);
             return;
         }
 
@@ -324,7 +480,7 @@ public sealed class RunService : IAsyncDisposable
         if (fatal is not null || rejected > 0)
         {
             var reason = fatal ?? $"{rejected} rejet(s) : l'exécution est en échec{(transactional ? ", aucun fichier n'a été publié" : string.Empty)}. {summary}";
-            await FailAsync(run, reason, ct).ConfigureAwait(false);
+            await FailAsync(run, reason, ct, "rejects").ConfigureAwait(false);
             return;
         }
 
@@ -333,6 +489,7 @@ public sealed class RunService : IAsyncDisposable
             await _runs.LogAsync(run.Id, _clock.UtcNow, "warning", "Aucun enregistrement lu.", ct).ConfigureAwait(false);
             await _runs.TransitionAsync(run.Id, RunStatus.Running, RunStatus.SucceededWithWarnings, "engine", "Aucun enregistrement", _clock.UtcNow, ct).ConfigureAwait(false);
             _events.RunChanged(run.Id, run.FlowId, RunStatus.SucceededWithWarnings);
+            await RaiseAlertAsync(run, "warning", $"Exécution {run.Id} : aucun enregistrement lu.", ct).ConfigureAwait(false);
             return;
         }
 
@@ -354,7 +511,7 @@ public sealed class RunService : IAsyncDisposable
                 break;
             }
 
-            await Task.Delay(_options.Retry.DelayFor(attempt, null), ct).ConfigureAwait(false);
+            await _options.Retry.WaitBeforeAsync(attempt, null, ct).ConfigureAwait(false);
             var retry = await writer.WriteBatchAsync(transient.Select(i => records[i]).ToList(), ct).ConfigureAwait(false);
             for (var k = 0; k < transient.Count; k++)
             {

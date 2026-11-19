@@ -19,11 +19,16 @@ export function RunDetail({ id, onClose }: { id: string; onClose: () => void }) 
     mutationFn: () => call("runs.cancel", { id }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["runs.get", id] }),
   });
+  const resume = useMutation({
+    mutationFn: () => call("runs.resume", { id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["runs.get", id] }),
+  });
   const run = detail.data?.run;
+  const resumable = run && (run.status === "suspended" || (run.status === "failed" && run.errorKind === "transient"));
   return (
     <section aria-label="Détail de l'exécution" className="panel">
       <h2>Exécution {id}</h2>
-      <ErrorMessage error={detail.error ?? cancel.error} />
+      <ErrorMessage error={detail.error ?? cancel.error ?? resume.error} />
       {run && (
         <>
           <p>
@@ -33,12 +38,18 @@ export function RunDetail({ id, onClose }: { id: string; onClose: () => void }) 
             <dt>Lus</dt><dd>{run.readCount}</dd>
             <dt>Écrits</dt><dd>{run.writtenCount}</dd>
             <dt>Rejetés</dt><dd>{run.rejectedCount}</dd>
-            <dt>Ignorés (doublons)</dt><dd>{run.skippedCount}</dd>
+            <dt>Ignorés (filtrés ou doublons)</dt><dd>{run.skippedCount}</dd>
           </dl>
           {run.error && <p role="alert" className="error">{run.error}</p>}
           {can("runs.cancel") && (run.status === "running" || run.status === "pending" || run.status === "suspended") && (
             <button type="button" onClick={() => cancel.mutate()} disabled={cancel.isPending}>Annuler l'exécution</button>
           )}
+          {can("flows.run") && resumable && (
+            <button type="button" onClick={() => resume.mutate()} disabled={resume.isPending}>
+              {run.status === "suspended" ? "Reprendre l'exécution" : "Relancer depuis le point de reprise"}
+            </button>
+          )}
+          {resume.data && <p role="status">Reprise lancée : exécution {resume.data.id}.</p>}
         </>
       )}
       {detail.data && detail.data.rejects.length > 0 && (

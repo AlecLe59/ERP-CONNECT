@@ -1,4 +1,5 @@
 using ErpConnect.Core.Abstractions;
+using ErpConnect.Core.Flows;
 using ErpConnect.Engine;
 using ErpConnect.Security.Vault;
 using ErpConnect.Storage;
@@ -70,6 +71,10 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public RunService Runs { get; private set; } = null!;
 
+    public SchedulerService Scheduler { get; private set; } = null!;
+
+    public IAlertRepository Alerts { get; private set; } = null!;
+
     /// <summary>Connecteurs installés (remplaçables par les tests).</summary>
     public IReadOnlyList<Connectors.Sdk.IConnector> ConnectorCatalog { get; init; } = ErpConnect.Connectors.ConnectorRegistry.CreateDefault();
 
@@ -118,12 +123,20 @@ internal sealed class EngineRuntime : IAsyncDisposable
         Connections = new ConnectionService(connections, flows, _vault, _audit, Clock, ConnectorCatalog);
         Preview = new PreviewService(Connections);
         Flows = new FlowService(flows, connections, _audit, Clock);
-        Runs = new RunService(new RunRepository(RunsDb), Flows, Connections, _audit, Clock, Events, RunOptions);
+        var runRepository = new RunRepository(RunsDb);
+        Alerts = runRepository;
+        Runs = new RunService(runRepository, Flows, Connections, _audit, Clock, Events, RunOptions);
+        Scheduler = new SchedulerService(new ScheduleRepository(Config), Flows, Runs, _audit, Clock, runRepository, Events);
         await Runs.RecoverInterruptedAsync(ct).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Scheduler is not null)
+        {
+            await Scheduler.DisposeAsync().ConfigureAwait(false);
+        }
+
         if (Runs is not null)
         {
             await Runs.DisposeAsync().ConfigureAwait(false);
@@ -157,4 +170,8 @@ internal sealed class EngineEventHub : IEngineEventSink
     public event Action<string, string, Core.Runs.RunStatus>? OnRunChanged;
 
     public void RunChanged(string runId, string flowId, Core.Runs.RunStatus status) => OnRunChanged?.Invoke(runId, flowId, status);
+
+    public event Action<long, string, string, string>? OnAlertRaised;
+
+    public void AlertRaised(long id, string flowId, string severity, string message) => OnAlertRaised?.Invoke(id, flowId, severity, message);
 }

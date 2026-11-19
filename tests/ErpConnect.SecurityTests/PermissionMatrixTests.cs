@@ -64,6 +64,12 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             ["connections.discover"] = () => new ConnectionDiscoverParams("absent", null),
             ["flows.preview"] = () => new FlowPreviewParams(new FlowDefinitionDto(new("absent", "", []), new("", "", "createNew", []), new("identity", []), 100, 10), 5),
             ["flows.functions"] = () => null,
+            ["runs.resume"] = () => new IdParams("absent"),
+            ["schedules.list"] = () => null,
+            ["schedules.save"] = () => new ScheduleSaveParams("absent", "0 6 * * *", "Europe/Paris", false, 0, 60, 0),
+            ["schedules.delete"] = () => new IdParams("absent"),
+            ["alerts.list"] = () => new AlertsListParams(true, 10),
+            ["alerts.acknowledge"] = () => new AlertAcknowledgeParams(999_999),
         };
 
         var checkedPairs = 0;

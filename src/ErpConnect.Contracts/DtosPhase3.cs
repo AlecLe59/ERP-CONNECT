@@ -55,7 +55,8 @@ public sealed record MappingSpecDto(string Mode, FieldMapDto[] Fields);
 /// <summary>Bloc de transformation : filter, set, rename, remove ou validate.</summary>
 public sealed record StepSpecDto(string Kind, string? Field, string? Expression, string? Target, string? Message);
 
-public sealed record FlowDefinitionDto(SourceSpecDto Source, TargetSpecDto Target, MappingSpecDto Mapping, int BatchSize, int MaxRejects, StepSpecDto[]? Steps = null);
+/// <summary>dedupKey : expression de clé métier ; un enregistrement dont la clé a déjà été transmise par ce flux est ignoré.</summary>
+public sealed record FlowDefinitionDto(SourceSpecDto Source, TargetSpecDto Target, MappingSpecDto Mapping, int BatchSize, int MaxRejects, StepSpecDto[]? Steps = null, string? DedupKey = null);
 
 public sealed record FlowSummaryDto(string Id, string Name, string Description, long DraftVersion, long? PublishedVersion, DateTimeOffset UpdatedAt, string UpdatedBy);
 
@@ -90,7 +91,8 @@ public sealed record RunDto(
     long RejectedCount,
     long SkippedCount,
     string? Error,
-    string? Trigger);
+    string? Trigger,
+    string? ErrorKind = null);
 
 public sealed record RunsListParams(string? FlowId, string? Status, int Page, int PageSize);
 

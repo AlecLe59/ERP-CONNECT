@@ -25,7 +25,7 @@
       "erpconnect.security": {
         "type": "Project",
         "dependencies": {
-          "ErpConnect.Core": "[0.4.0, )",
+          "ErpConnect.Core": "[0.5.0, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.15, )"
         }
       },

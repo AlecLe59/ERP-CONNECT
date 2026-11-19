@@ -128,6 +128,24 @@ public static class RpcMethods
     public static readonly RpcMethodDescriptor FlowsFunctions = new(
         "flows.functions", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(FunctionsListResult), "Fonctions du langage d'expressions");
 
+    public static readonly RpcMethodDescriptor RunsResume = new(
+        "runs.resume", PermissionMode.Required, "flows.run", typeof(IdParams), typeof(RunDto), "Reprendre une exécution suspendue ou en échec transitoire");
+
+    public static readonly RpcMethodDescriptor SchedulesList = new(
+        "schedules.list", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(SchedulesListResult), "Planifications");
+
+    public static readonly RpcMethodDescriptor SchedulesSave = new(
+        "schedules.save", PermissionMode.Required, "flows.edit", typeof(ScheduleSaveParams), typeof(ScheduleDto), "Créer ou modifier la planification d'un flux");
+
+    public static readonly RpcMethodDescriptor SchedulesDelete = new(
+        "schedules.delete", PermissionMode.Required, "flows.edit", typeof(IdParams), typeof(DeleteResult), "Supprimer la planification d'un flux");
+
+    public static readonly RpcMethodDescriptor AlertsList = new(
+        "alerts.list", PermissionMode.Required, "dashboard.read", typeof(AlertsListParams), typeof(AlertsListResult), "Alertes (échecs, occurrences sautées)");
+
+    public static readonly RpcMethodDescriptor AlertsAcknowledge = new(
+        "alerts.acknowledge", PermissionMode.Required, "flows.run", typeof(AlertAcknowledgeParams), typeof(AlertAcknowledgeResult), "Acquitter une alerte");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
@@ -136,6 +154,7 @@ public static class RpcMethods
         ConnectorsList, ConnectionsList, ConnectionsSave, ConnectionsDelete, ConnectionsTest,
         FlowsList, FlowsGet, FlowsSave, FlowsPublish, RunsStart, RunsList, RunsGet, RunsCancel,
         ConnectionsDiscover, FlowsPreview, FlowsFunctions,
+        RunsResume, SchedulesList, SchedulesSave, SchedulesDelete, AlertsList, AlertsAcknowledge,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));
@@ -155,7 +174,10 @@ public static class RpcNotifications
     public static readonly RpcNotificationDescriptor RunChanged = new(
         "runs.changed", "flows.read", typeof(RunChangedPayload), "Changement de statut d'une exécution");
 
-    public static IReadOnlyList<RpcNotificationDescriptor> All { get; } = [EngineStatusChanged, SettingsChanged, AuditAppended, RunChanged];
+    public static readonly RpcNotificationDescriptor AlertRaised = new(
+        "alerts.raised", "dashboard.read", typeof(AlertRaisedPayload), "Nouvelle alerte");
+
+    public static IReadOnlyList<RpcNotificationDescriptor> All { get; } = [EngineStatusChanged, SettingsChanged, AuditAppended, RunChanged, AlertRaised];
 
     public static RpcNotificationDescriptor? Find(string name) => All.FirstOrDefault(n => string.Equals(n.Name, name, StringComparison.Ordinal));
 }

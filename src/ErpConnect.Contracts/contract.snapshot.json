@@ -1,9 +1,23 @@
 {
-  "protocolVersion": "1.2",
+  "protocolVersion": "1.3",
   "pipeName": "ERPConnect.Engine",
   "maxMessageBytes": 4194304,
   "maxJsonDepth": 64,
   "methods": [
+    {
+      "name": "alerts.acknowledge",
+      "permissionMode": "Required",
+      "permission": "flows.run",
+      "params": "AlertAcknowledgeParams",
+      "result": "AlertAcknowledgeResult"
+    },
+    {
+      "name": "alerts.list",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "AlertsListParams",
+      "result": "AlertsListResult"
+    },
     {
       "name": "audit.query",
       "permissionMode": "Required",
@@ -138,11 +152,39 @@
       "result": "RunsListResult"
     },
     {
+      "name": "runs.resume",
+      "permissionMode": "Required",
+      "permission": "flows.run",
+      "params": "IdParams",
+      "result": "RunDto"
+    },
+    {
       "name": "runs.start",
       "permissionMode": "Required",
       "permission": "flows.run",
       "params": "RunStartParams",
       "result": "RunDto"
+    },
+    {
+      "name": "schedules.delete",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "IdParams",
+      "result": "DeleteResult"
+    },
+    {
+      "name": "schedules.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "SchedulesListResult"
+    },
+    {
+      "name": "schedules.save",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "ScheduleSaveParams",
+      "result": "ScheduleDto"
     },
     {
       "name": "session.hello",
@@ -216,6 +258,11 @@
     }
   ],
   "notifications": [
+    {
+      "name": "alerts.raised",
+      "permission": "dashboard.read",
+      "payload": "AlertRaisedPayload"
+    },
     {
       "name": "audit.appended",
       "permission": "audit.read",
@@ -292,6 +339,86 @@
     }
   ],
   "types": {
+    "AlertAcknowledgeParams": [
+      {
+        "name": "id",
+        "type": "number"
+      }
+    ],
+    "AlertAcknowledgeResult": [
+      {
+        "name": "acknowledged",
+        "type": "boolean"
+      }
+    ],
+    "AlertDto": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "runId",
+        "type": "string | null"
+      },
+      {
+        "name": "severity",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "acknowledgedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "acknowledgedBy",
+        "type": "string | null"
+      }
+    ],
+    "AlertRaisedPayload": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "severity",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "AlertsListParams": [
+      {
+        "name": "openOnly",
+        "type": "boolean"
+      },
+      {
+        "name": "limit",
+        "type": "number"
+      }
+    ],
+    "AlertsListResult": [
+      {
+        "name": "alerts",
+        "type": "AlertDto[]"
+      }
+    ],
     "AssignRoleParams": [
       {
         "name": "principalSid",
@@ -699,6 +826,10 @@
       {
         "name": "steps",
         "type": "StepSpecDto[] | null"
+      },
+      {
+        "name": "dedupKey",
+        "type": "string | null"
       }
     ],
     "FlowDetailResult": [
@@ -1131,6 +1262,10 @@
       {
         "name": "trigger",
         "type": "string | null"
+      },
+      {
+        "name": "errorKind",
+        "type": "string | null"
       }
     ],
     "RunLogDto": [
@@ -1217,6 +1352,96 @@
       {
         "name": "pageSize",
         "type": "number"
+      }
+    ],
+    "ScheduleDto": [
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "cron",
+        "type": "string"
+      },
+      {
+        "name": "timeZone",
+        "type": "string"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean"
+      },
+      {
+        "name": "maxRetries",
+        "type": "number"
+      },
+      {
+        "name": "retryDelaySeconds",
+        "type": "number"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      },
+      {
+        "name": "nextRunAt",
+        "type": "string | null"
+      },
+      {
+        "name": "lastRunId",
+        "type": "string | null"
+      },
+      {
+        "name": "retryAttempt",
+        "type": "number"
+      },
+      {
+        "name": "retryAt",
+        "type": "string | null"
+      }
+    ],
+    "ScheduleSaveParams": [
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "cron",
+        "type": "string"
+      },
+      {
+        "name": "timeZone",
+        "type": "string"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean"
+      },
+      {
+        "name": "maxRetries",
+        "type": "number"
+      },
+      {
+        "name": "retryDelaySeconds",
+        "type": "number"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "number"
+      }
+    ],
+    "SchedulesListResult": [
+      {
+        "name": "schedules",
+        "type": "ScheduleDto[]"
       }
     ],
     "SettingsChangedPayload": [

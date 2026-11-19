@@ -59,6 +59,7 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
                 _loggers.CreateLogger<PipeServer>());
             BridgeEvents(_server);
             _server.Start();
+            _runtime.Scheduler.Start();
             _runtime.Status.SetState(EngineState.Running);
             LogStarted(_logger, _runtime.Version, Protocol.PipeName);
         }
@@ -115,6 +116,8 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
             Fire(RpcNotifications.AuditAppended, new AuditAppendedPayload(seq, action, outcome));
         _runtime.Events.OnRunChanged += (runId, flowId, status) =>
             Fire(RpcNotifications.RunChanged, new RunChangedPayload(runId, flowId, RpcEndpoints.StatusName(status)));
+        _runtime.Events.OnAlertRaised += (id, flowId, severity, message) =>
+            Fire(RpcNotifications.AlertRaised, new AlertRaisedPayload(id, flowId, severity, message));
     }
 
     private void ApplyLogLevel(string level) => _level.MinimumLevel = level switch

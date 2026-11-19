@@ -36,7 +36,7 @@ public sealed class EngineIntegrationTests : IAsyncLifetime
         s["state"]!.GetValue<string>().ShouldBe("running");
         s["version"]!.GetValue<string>().ShouldBe("0.2.0-test");
         s["databases"]!.AsArray().Select(d => (d!["name"]!.GetValue<string>(), d["ok"]!.GetValue<bool>(), d["schemaVersion"]!.GetValue<int>()))
-            .ShouldBe([("config", true, 2), ("runs", true, 2), ("audit", true, 1)]);
+            .ShouldBe([("config", true, 3), ("runs", true, 3), ("audit", true, 1)]);
         s["vault"]!["initialized"]!.GetValue<bool>().ShouldBeTrue();
         s["vault"]!["activeKeyVersion"]!.GetValue<int>().ShouldBe(1);
         s["dataDiskTotalBytes"]!.GetValue<long>().ShouldBeGreaterThan(0);

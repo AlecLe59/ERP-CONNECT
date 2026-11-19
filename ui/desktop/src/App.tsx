@@ -6,6 +6,8 @@ import { Settings } from "./screens/Settings";
 import { Users } from "./screens/Users";
 import { Audit } from "./screens/Audit";
 import { NotAvailable } from "./screens/NotAvailable";
+import { Schedules } from "./screens/Schedules";
+import { Monitoring } from "./screens/Monitoring";
 import { Connections } from "./screens/Connections";
 import { Flows } from "./screens/Flows";
 import { Runs } from "./screens/Runs";
@@ -62,6 +64,8 @@ export function App() {
               : current.id === "connections" ? <Connections />
               : current.id === "flows" ? <Flows />
               : current.id === "runs" ? <Runs />
+              : current.id === "schedules" ? <Schedules />
+              : current.id === "monitoring" ? <Monitoring />
               : null
           )}
         </main>

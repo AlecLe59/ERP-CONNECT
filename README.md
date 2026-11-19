@@ -4,7 +4,7 @@ Logiciel d'intégration universelle de données pour Windows, installé chez le 
 
 **Principe :** SOURCE → TRANSFORMATION → DESTINATION
 
-> **État du projet : Phases 2 à 4 développées (socle Windows, connecteurs, exécution par lots, éditeur et expressions), en attente de validation sur Windows.**
+> **État du projet : Phases 2 à 5 développées (socle Windows, connecteurs, exécution par lots, éditeur, planification et reprise), en attente de validation sur Windows.**
 > Le socle compile et ses tests passent sous Linux (voir [docs/phases/phase-2-rapport.md](docs/phases/phase-2-rapport.md)).
 > Les parties propres à Windows (service installé, ACL, DPAPI, MSI) sont écrites mais **pas encore testées sur
 > Windows** : rien n'est déclaré opérationnel chez un client avant cette validation.

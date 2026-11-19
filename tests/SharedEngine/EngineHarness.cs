@@ -95,6 +95,8 @@ internal sealed class EngineHarness : IAsyncDisposable
             _ = _server.BroadcastAsync(ErpConnect.Contracts.RpcNotifications.SettingsChanged, new ErpConnect.Contracts.SettingsChangedPayload(v, by), authorizer, default);
         Runtime.Events.OnRunChanged += (id, flow, status) =>
             _ = _server.BroadcastAsync(ErpConnect.Contracts.RpcNotifications.RunChanged, new ErpConnect.Contracts.RunChangedPayload(id, flow, RpcEndpoints.StatusName(status)), authorizer, default);
+        Runtime.Events.OnAlertRaised += (id, flow, severity, message) =>
+            _ = _server.BroadcastAsync(ErpConnect.Contracts.RpcNotifications.AlertRaised, new ErpConnect.Contracts.AlertRaisedPayload(id, flow, severity, message), authorizer, default);
         _server.Start();
         Runtime.Status.SetState(EngineState.Running);
     }

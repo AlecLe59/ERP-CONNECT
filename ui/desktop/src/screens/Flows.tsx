@@ -14,6 +14,7 @@ export const EMPTY_DEFINITION: FlowDefinitionDto = {
   batchSize: 1000,
   maxRejects: 1000,
   steps: [],
+  dedupKey: null,
 };
 
 export function getOption(options: KeyValueDto[], key: string) {
@@ -272,6 +273,10 @@ function FlowEditor({ flow, onDone }: { flow: FlowSummaryDto | null; onDone: (sa
         <fieldset className="zone">
           <legend>Transformation</legend>
           <StepsEditor steps={definition.steps ?? []} onChange={(steps) => update({ steps })} />
+          <label>
+            Clé anti-doublon (expression, facultatif)
+            <input value={definition.dedupKey ?? ""} placeholder="ex. [numeroFacture]" onChange={(e) => update({ dedupKey: e.target.value || null })} />
+          </label>
           <h3>Correspondance</h3>
           <label>
             Mode

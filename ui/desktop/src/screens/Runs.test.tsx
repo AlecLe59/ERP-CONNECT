@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Runs } from "./Runs";
-import { FakeEngine, OPERATOR_PERMISSIONS } from "../test/fakeEngine";
+import { RunDetail, Runs } from "./Runs";
+import { ALL_PERMISSIONS, FakeEngine, OPERATOR_PERMISSIONS } from "../test/fakeEngine";
 import { renderWithEngine } from "../test/render";
 import { RUN } from "../test/phase3Fixtures";
 
@@ -46,5 +46,22 @@ describe("Runs", () => {
     items = [{ ...RUN, id: "r2", status: "succeeded", statusLabel: "Réussi" }, RUN];
     engine.emit({ jsonrpc: "2.0", method: "runs.changed", params: { runId: "r2", flowId: "clients", status: "succeeded" } });
     expect(await screen.findByText("Réussi")).toBeInTheDocument();
+  });
+
+  it("propose la reprise d'une exécution suspendue ou en échec transitoire, pas d'un échec par rejet", async () => {
+    const engine = new FakeEngine(ALL_PERMISSIONS);
+    engine.handlers["runs.get"] = () => ({ run: { ...RUN, status: "suspended", statusLabel: "Suspendu", errorKind: null }, rejects: [], logs: [] });
+    engine.handlers["runs.resume"] = () => ({ ...RUN, status: "pending" });
+    const { unmount } = renderWithEngine(<RunDetail id={RUN.id} onClose={() => undefined} />, engine);
+    await userEvent.click(await screen.findByRole("button", { name: "Reprendre l'exécution" }));
+    expect(engine.calls.find((c) => c.method === "runs.resume")!.params).toEqual({ id: RUN.id });
+    expect(await screen.findByText(/Reprise lancée/)).toBeInTheDocument();
+    unmount();
+
+    const failed = new FakeEngine(ALL_PERMISSIONS);
+    failed.handlers["runs.get"] = () => ({ run: RUN, rejects: [], logs: [] });
+    renderWithEngine(<RunDetail id={RUN.id} onClose={() => undefined} />, failed);
+    expect(await screen.findByText("Échec")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Reprendre|Relancer/ })).toBeNull();
   });
 });

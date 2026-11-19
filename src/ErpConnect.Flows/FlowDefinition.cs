@@ -26,7 +26,7 @@ public sealed record MappingSpec(string Mode, FieldMap[] Fields);
 public sealed record StepSpec(string Kind, string? Field = null, string? Expression = null, string? Target = null, string? Message = null);
 
 /// <summary>Définition versionnée d'un flux, stockée en JSON (camelCase).</summary>
-public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, MappingSpec Mapping, int BatchSize = 1000, int MaxRejects = 1000, StepSpec[]? Steps = null)
+public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, MappingSpec Mapping, int BatchSize = 1000, int MaxRejects = 1000, StepSpec[]? Steps = null, string? DedupKey = null)
 {
     public IReadOnlyList<StepSpec> AllSteps => Steps ?? [];
 
@@ -88,6 +88,11 @@ public sealed record FlowDefinition(SourceSpec Source, TargetSpec Target, Mappin
         if (MaxRejects is < 1 or > 1_000_000)
         {
             errors.Add(new("maxRejects", "Entre 1 et 1 000 000."));
+        }
+
+        if (!string.IsNullOrWhiteSpace(DedupKey) && ExpressionCompiler.TryCompile(DedupKey, out var dedupError) is null)
+        {
+            errors.Add(new FlowError("dedupKey", dedupError!));
         }
 
         if (AllSteps.Count > 100)

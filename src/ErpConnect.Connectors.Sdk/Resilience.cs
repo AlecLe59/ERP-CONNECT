@@ -24,6 +24,9 @@ public sealed class RetryPolicy
 
     public int MaxAttempts { get; }
 
+    /// <summary>Attente avant la tentative donnée (gigue complète), via la fonction d'attente configurée.</summary>
+    public Task WaitBeforeAsync(int attempt, TimeSpan? retryAfter, CancellationToken ct) => _delay(DelayFor(attempt, retryAfter), ct);
+
     public TimeSpan BaseDelay { get; }
 
     public TimeSpan MaxDelay { get; }

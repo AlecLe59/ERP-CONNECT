@@ -47,14 +47,65 @@ public sealed record RunRecord(
     long SkippedCount,
     string? Checkpoint,
     string? Error,
-    string? Trigger);
+    string? Trigger,
+    string? ErrorKind = null);
 
 public sealed record RunRejectRecord(long Id, string RunId, long BatchNumber, int RecordIndex, string Stage, string Reason, string? RecordJson, DateTimeOffset At);
 
 public sealed record RunLogRecord(long Id, string RunId, DateTimeOffset At, string Level, string Message);
 
 /// <summary>Progression enregistrée après un lot confirmé, en une transaction (compteurs + point de reprise + rejets).</summary>
-public sealed record RunProgress(long Read, long Written, long Rejected, long Skipped, string? Checkpoint, IReadOnlyList<RunRejectRecord> NewRejects);
+public sealed record RunProgress(long Read, long Written, long Rejected, long Skipped, string? Checkpoint, IReadOnlyList<RunRejectRecord> NewRejects, IReadOnlyList<string>? NewDedupKeys = null);
+
+/// <summary>Planification d'un flux (expression cron à 5 champs, fuseau horaire, nouvelles tentatives).</summary>
+public sealed record ScheduleRecord(
+    string FlowId,
+    string Cron,
+    string TimeZone,
+    bool Enabled,
+    int MaxRetries,
+    int RetryDelaySeconds,
+    long Version,
+    DateTimeOffset UpdatedAt,
+    string UpdatedBy,
+    DateTimeOffset? NextRunAt,
+    string? LastRunId,
+    int RetryAttempt,
+    DateTimeOffset? RetryAt);
+
+public sealed record AlertRecord(long Id, string FlowId, string? RunId, string Severity, string Message, DateTimeOffset CreatedAt, DateTimeOffset? AcknowledgedAt, string? AcknowledgedBy);
+
+public interface IScheduleRepository
+{
+    Task<IReadOnlyList<ScheduleRecord>> ListAsync(CancellationToken ct);
+
+    Task<ScheduleRecord?> GetAsync(string flowId, CancellationToken ct);
+
+    /// <summary>Crée (expectedVersion 0) ou modifie ; null si la version attendue ne correspond pas.</summary>
+    Task<ScheduleRecord?> SaveAsync(ScheduleRecord record, long expectedVersion, CancellationToken ct);
+
+    Task<bool> DeleteAsync(string flowId, CancellationToken ct);
+
+    /// <summary>État du planificateur (ne change pas la version de configuration).</summary>
+    Task SetStateAsync(string flowId, DateTimeOffset? nextRunAt, string? lastRunId, int retryAttempt, DateTimeOffset? retryAt, CancellationToken ct);
+}
+
+public interface IDedupRegistry
+{
+    /// <summary>Parmi les clés données, celles déjà enregistrées pour ce flux.</summary>
+    Task<IReadOnlySet<string>> ExistingAsync(string flowId, IReadOnlyCollection<string> keyHashes, CancellationToken ct);
+
+    Task RegisterAsync(string flowId, string runId, IReadOnlyCollection<string> keyHashes, DateTimeOffset at, CancellationToken ct);
+}
+
+public interface IAlertRepository
+{
+    Task<AlertRecord> RaiseAsync(string flowId, string? runId, string severity, string message, DateTimeOffset at, CancellationToken ct);
+
+    Task<IReadOnlyList<AlertRecord>> ListAsync(bool openOnly, int limit, CancellationToken ct);
+
+    Task<bool> AcknowledgeAsync(long id, string by, DateTimeOffset at, CancellationToken ct);
+}
 
 public sealed record RunQuery(string? FlowId, RunStatus? Status, int Page, int PageSize);
 
@@ -100,7 +151,7 @@ public interface IRunRepository
 
     Task SaveProgressAsync(string id, RunProgress progress, CancellationToken ct);
 
-    Task SetErrorAsync(string id, string error, CancellationToken ct);
+    Task SetErrorAsync(string id, string error, CancellationToken ct, string? kind = null);
 
     Task<IReadOnlyList<RunRejectRecord>> RejectsAsync(string runId, int limit, CancellationToken ct);
 

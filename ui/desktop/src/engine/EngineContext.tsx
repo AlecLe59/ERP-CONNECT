@@ -16,7 +16,7 @@ interface EngineContextValue {
 
 const EngineContext = createContext<EngineContextValue | null>(null);
 
-export const CLIENT_VERSION = "0.4.0";
+export const CLIENT_VERSION = "0.5.0";
 
 /** Ouvre la session, la rouvre si le service redémarre, et signale clairement l'indisponibilité du moteur. */
 export function EngineProvider({ transport, retryMs = 3000, children }: { transport: EngineTransport; retryMs?: number; children: ReactNode }) {

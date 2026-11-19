@@ -61,7 +61,7 @@ public sealed class FlowRpcTests : IAsyncLifetime
         (await c.CallAsync("events.subscribe", new EventsSubscribeParams(["runs.changed"]))).Result();
 
         var connectors = (await c.CallAsync("connectors.list")).Result();
-        connectors["connectors"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["file.local", "file.sftp", "file.ftp", "rest"]);
+        connectors["connectors"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["file.local", "file.sftp", "file.ftp", "rest", "db.sqlite"]);
         connectors["formats"]!.AsArray().Select(x => x!["id"]!.GetValue<string>()).ShouldBe(["csv", "json", "xml", "xlsx"]);
 
         (await c.CallAsync("connections.save", Local("src", input))).Result();

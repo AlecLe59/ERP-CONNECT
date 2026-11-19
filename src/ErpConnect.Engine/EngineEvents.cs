@@ -10,6 +10,10 @@ public interface IEngineEventSink
     void AuditAppended(long sequence, string action, string outcome);
 
     void RunChanged(string runId, string flowId, ErpConnect.Core.Runs.RunStatus status);
+
+    void AlertRaised(long id, string flowId, string severity, string message)
+    {
+    }
 }
 
 public sealed class NullEngineEventSink : IEngineEventSink

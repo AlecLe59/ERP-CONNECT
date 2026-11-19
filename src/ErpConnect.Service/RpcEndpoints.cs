@@ -143,6 +143,7 @@ internal static class RpcEndpoints
 
         RegisterFlows(dispatcher, runtime);
         RegisterDesign(dispatcher, runtime);
+        RegisterScheduling(dispatcher, runtime);
     }
 
     private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
@@ -249,6 +250,48 @@ internal static class RpcEndpoints
             ExpressionCompiler.FunctionCatalog.Select(f => new FunctionDto(f.Name, f.Signature, f.Help)).ToArray())));
     }
 
+    private static void RegisterScheduling(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<IdParams, RunDto>(RpcMethods.RunsResume, async (ctx, p, ct) =>
+            ToDto(await Guard(() => runtime.Runs.ResumeAsync(ctx.Caller, p.Id, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<EmptyParams, SchedulesListResult>(RpcMethods.SchedulesList, async (_, _, ct) =>
+            new SchedulesListResult((await runtime.Scheduler.ListAsync(ct).ConfigureAwait(false)).Select(ToDto).ToArray()));
+
+        dispatcher.Register<ScheduleSaveParams, ScheduleDto>(RpcMethods.SchedulesSave, async (ctx, p, ct) =>
+            ToDto(await Guard(() => runtime.Scheduler.SaveAsync(ctx.Caller, p.FlowId, p.Cron, p.TimeZone, p.Enabled, p.MaxRetries, p.RetryDelaySeconds, p.ExpectedVersion, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<IdParams, DeleteResult>(RpcMethods.SchedulesDelete, async (ctx, p, ct) =>
+            new DeleteResult(await Guard(() => runtime.Scheduler.DeleteAsync(ctx.Caller, p.Id, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<AlertsListParams, AlertsListResult>(RpcMethods.AlertsList, async (_, p, ct) =>
+        {
+            if (p.Limit is < 1 or > 500)
+            {
+                throw RpcException.Validation([new FieldErrorDto("limit", "Entre 1 et 500.")]);
+            }
+
+            return new AlertsListResult((await runtime.Alerts.ListAsync(p.OpenOnly, p.Limit, ct).ConfigureAwait(false))
+                .Select(a => new AlertDto(a.Id, a.FlowId, a.RunId, a.Severity, a.Message, a.CreatedAt, a.AcknowledgedAt, a.AcknowledgedBy)).ToArray());
+        });
+
+        dispatcher.Register<AlertAcknowledgeParams, AlertAcknowledgeResult>(RpcMethods.AlertsAcknowledge, async (ctx, p, ct) =>
+        {
+            var done = await runtime.Alerts.AcknowledgeAsync(p.Id, ctx.Caller.UserName, runtime.Clock.UtcNow, ct).ConfigureAwait(false);
+            if (done)
+            {
+                await runtime.Audit.AppendAsync(new Core.Audit.AuditEntry(ctx.Caller.UserSid, ctx.Caller.UserName, "alerts.acknowledge", $"alert/{p.Id}",
+                    Core.Audit.AuditOutcomes.Success, null, ctx.CorrelationId), ct).ConfigureAwait(false);
+            }
+
+            return new AlertAcknowledgeResult(done);
+        });
+    }
+
+    private static ScheduleDto ToDto(ScheduleRecord s) => new(
+        s.FlowId, s.Cron, s.TimeZone, s.Enabled, s.MaxRetries, s.RetryDelaySeconds, s.Version, s.UpdatedAt, s.UpdatedBy, s.NextRunAt, s.LastRunId,
+        s.RetryAttempt == int.MaxValue ? s.MaxRetries : s.RetryAttempt, s.RetryAt);
+
     private static DiscoveredFieldDto ToDto(ErpConnect.Connectors.Sdk.FieldInfo f) =>
         new(f.Name, f.Type, f.Children?.Select(ToDto).ToArray() ?? []);
 
@@ -269,7 +312,7 @@ internal static class RpcEndpoints
 
     private static RunDto ToDto(RunRecord r) => new(
         r.Id, r.FlowId, r.FlowVersion, StatusName(r.Status), r.Status.ToFrenchLabel(), r.TriggeredBy, r.ParentRunId, r.CreatedAt, r.StartedAt, r.EndedAt,
-        r.ReadCount, r.WrittenCount, r.RejectedCount, r.SkippedCount, r.Error, r.Trigger);
+        r.ReadCount, r.WrittenCount, r.RejectedCount, r.SkippedCount, r.Error, r.Trigger, r.ErrorKind);
 
     private static KeyValueDto[] ToDto(OptionEntry[] o) => o.Select(e => new KeyValueDto(e.Key, e.Value)).ToArray();
 
@@ -279,13 +322,14 @@ internal static class RpcEndpoints
         new SourceSpecDto(d.Source.ConnectionId, d.Source.Resource, ToDto(d.Source.Options)),
         new TargetSpecDto(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, ToDto(d.Target.Options)),
         new MappingSpecDto(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMapDto(f.Target, f.Expression)).ToArray()),
-        d.BatchSize, d.MaxRejects, d.AllSteps.Select(s => new StepSpecDto(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray());
+        d.BatchSize, d.MaxRejects, d.AllSteps.Select(s => new StepSpecDto(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray(), d.DedupKey);
 
     internal static FlowDefinition FromDto(FlowDefinitionDto d) => new(
         new SourceSpec(d.Source.ConnectionId, d.Source.Resource, FromDto(d.Source.Options)),
         new TargetSpec(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, FromDto(d.Target.Options)),
         new MappingSpec(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMap(f.Target, f.Expression)).ToArray()),
-        d.BatchSize, d.MaxRejects, d.Steps is null or { Length: 0 } ? null : d.Steps.Select(s => new StepSpec(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray());
+        d.BatchSize, d.MaxRejects, d.Steps is null or { Length: 0 } ? null : d.Steps.Select(s => new StepSpec(s.Kind, s.Field, s.Expression, s.Target, s.Message)).ToArray(),
+        string.IsNullOrWhiteSpace(d.DedupKey) ? null : d.DedupKey);
 
     private static List<RpcNotificationDescriptor> ValidateTopics(string[] topics)
     {

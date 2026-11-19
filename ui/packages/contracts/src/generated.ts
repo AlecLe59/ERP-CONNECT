@@ -1,7 +1,42 @@
 // Fichier généré par ErpConnect.Tools.ContractGen à partir de ErpConnect.Contracts.
 // NE PAS MODIFIER À LA MAIN : relancer `dotnet run --project tools/ErpConnect.Tools.ContractGen`.
 
-export const PROTOCOL_VERSION = "1.2";
+export const PROTOCOL_VERSION = "1.3";
+
+export interface AlertAcknowledgeParams {
+  id: number;
+}
+
+export interface AlertAcknowledgeResult {
+  acknowledged: boolean;
+}
+
+export interface AlertDto {
+  id: number;
+  flowId: string;
+  runId: string | null;
+  severity: string;
+  message: string;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: string | null;
+}
+
+export interface AlertRaisedPayload {
+  id: number;
+  flowId: string;
+  severity: string;
+  message: string;
+}
+
+export interface AlertsListParams {
+  openOnly: boolean;
+  limit: number;
+}
+
+export interface AlertsListResult {
+  alerts: AlertDto[];
+}
 
 export interface AssignRoleParams {
   principalSid: string;
@@ -166,6 +201,7 @@ export interface FlowDefinitionDto {
   batchSize: number;
   maxRejects: number;
   steps: StepSpecDto[] | null;
+  dedupKey: string | null;
 }
 
 export interface FlowDetailResult {
@@ -344,6 +380,7 @@ export interface RunDto {
   skippedCount: number;
   error: string | null;
   trigger: string | null;
+  errorKind: string | null;
 }
 
 export interface RunLogDto {
@@ -378,6 +415,36 @@ export interface RunsListResult {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface ScheduleDto {
+  flowId: string;
+  cron: string;
+  timeZone: string;
+  enabled: boolean;
+  maxRetries: number;
+  retryDelaySeconds: number;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+  nextRunAt: string | null;
+  lastRunId: string | null;
+  retryAttempt: number;
+  retryAt: string | null;
+}
+
+export interface ScheduleSaveParams {
+  flowId: string;
+  cron: string;
+  timeZone: string;
+  enabled: boolean;
+  maxRetries: number;
+  retryDelaySeconds: number;
+  expectedVersion: number;
+}
+
+export interface SchedulesListResult {
+  schedules: ScheduleDto[];
 }
 
 export interface SettingsChangedPayload {
@@ -487,6 +554,12 @@ export interface RpcMethodMap {
   "connections.discover": { params: ConnectionDiscoverParams; result: ConnectionDiscoverResult };
   "flows.preview": { params: FlowPreviewParams; result: FlowPreviewResult };
   "flows.functions": { params: EmptyParams; result: FunctionsListResult };
+  "runs.resume": { params: IdParams; result: RunDto };
+  "schedules.list": { params: EmptyParams; result: SchedulesListResult };
+  "schedules.save": { params: ScheduleSaveParams; result: ScheduleDto };
+  "schedules.delete": { params: IdParams; result: DeleteResult };
+  "alerts.list": { params: AlertsListParams; result: AlertsListResult };
+  "alerts.acknowledge": { params: AlertAcknowledgeParams; result: AlertAcknowledgeResult };
 }
 
 export type RpcMethodName = keyof RpcMethodMap;
@@ -496,6 +569,7 @@ export interface RpcNotificationMap {
   "settings.changed": SettingsChangedPayload;
   "audit.appended": AuditAppendedPayload;
   "runs.changed": RunChangedPayload;
+  "alerts.raised": AlertRaisedPayload;
 }
 
 export type RpcNotificationName = keyof RpcNotificationMap;
@@ -531,6 +605,12 @@ export const METHOD_PERMISSIONS: Record<RpcMethodName, string | null> = {
   "connections.discover": "connections.use",
   "flows.preview": "flows.edit",
   "flows.functions": "flows.read",
+  "runs.resume": "flows.run",
+  "schedules.list": "flows.read",
+  "schedules.save": "flows.edit",
+  "schedules.delete": "flows.edit",
+  "alerts.list": "dashboard.read",
+  "alerts.acknowledge": "flows.run",
 };
 
 export const RPC_ERROR_CODES = {

@@ -30,5 +30,5 @@ export const API: ConnectionDto = {
 export const RUN: RunDto = {
   id: "20261119-120000-abcd1234", flowId: "clients", flowVersion: 2, status: "failed", statusLabel: "Échec", triggeredBy: "PC\\alice", parentRunId: null,
   createdAt: "2026-11-19T12:00:00Z", startedAt: "2026-11-19T12:00:01Z", endedAt: "2026-11-19T12:00:05Z", readCount: 10, writtenCount: 9, rejectedCount: 1, skippedCount: 0,
-  error: "1 rejet(s) : l'exécution est en échec.", trigger: "manual",
+  error: "1 rejet(s) : l'exécution est en échec.", trigger: "manual", errorKind: "rejects",
 };
