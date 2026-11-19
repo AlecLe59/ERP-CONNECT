@@ -1,0 +1,36 @@
+namespace ErpConnect.Engine;
+
+/// <summary>Événements du moteur relayés en notifications JSON-RPC par le service.</summary>
+public interface IEngineEventSink
+{
+    void StatusChanged(EngineState state, DateTimeOffset at);
+
+    void SettingsChanged(long version, string updatedBy);
+
+    void AuditAppended(long sequence, string action, string outcome);
+}
+
+public sealed class NullEngineEventSink : IEngineEventSink
+{
+    public static NullEngineEventSink Instance { get; } = new();
+
+    public void StatusChanged(EngineState state, DateTimeOffset at)
+    {
+    }
+
+    public void SettingsChanged(long version, string updatedBy)
+    {
+    }
+
+    public void AuditAppended(long sequence, string action, string outcome)
+    {
+    }
+}
+
+public enum EngineState
+{
+    Starting,
+    Running,
+    Degraded,
+    Stopping,
+}

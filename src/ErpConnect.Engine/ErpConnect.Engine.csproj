@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Engine</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Core\ErpConnect.Core.csproj" />
+    <ProjectReference Include="..\ErpConnect.Storage\ErpConnect.Storage.csproj" />
+    <ProjectReference Include="..\ErpConnect.Security\ErpConnect.Security.csproj" />
+  </ItemGroup>
+</Project>

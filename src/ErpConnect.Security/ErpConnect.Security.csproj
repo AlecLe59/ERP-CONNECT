@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Security</RootNamespace>
+    <!-- Requis par LibraryImport (LookupAccountSidW). Aucun code unsafe écrit à la main. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Core\ErpConnect.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ErpConnect.Security.Tests" />
+  </ItemGroup>
+</Project>

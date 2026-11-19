@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Seule capacité de l'application : relayer engine_call et recevoir les notifications du moteur.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-engine-call",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

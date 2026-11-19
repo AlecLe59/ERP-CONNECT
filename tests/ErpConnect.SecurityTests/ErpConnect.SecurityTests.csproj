@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ErpConnect.Service\ErpConnect.Service.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Rpc\ErpConnect.Rpc.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Contracts\ErpConnect.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Security\ErpConnect.Security.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Storage\ErpConnect.Storage.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Engine\ErpConnect.Engine.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Core\ErpConnect.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\SharedEngine\*.cs" Link="SharedEngine\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

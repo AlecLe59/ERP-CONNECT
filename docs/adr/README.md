@@ -15,5 +15,7 @@
 | [0011](0011-agent-sortant-facultatif.md) | Agent distant facultatif, HTTPS sortant | Accepté |
 | [0012](0012-control-center-deploiement.md) | Control Center déployable partout | Accepté |
 | [0013](0013-statut-annule.md) | Statut « Annulé » | Accepté |
+| [0014](0014-jsonrpc-implementation-maison.md) | Routage JSON-RPC écrit dans le projet | Proposé |
+| [0015](0015-verification-serveur-proprietaire-pipe.md) | Vérification du serveur par le propriétaire du pipe | Proposé |
 
 Nouvelle décision : copier [0000-modele.md](0000-modele.md).

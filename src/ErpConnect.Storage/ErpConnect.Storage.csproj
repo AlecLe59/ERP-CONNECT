@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Storage</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Core\ErpConnect.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Migrations intégrées au binaire. Nom de ressource : ErpConnect.Storage.Migrations.<base>.<NNNN_nom>.sql -->
+    <EmbeddedResource Include="Migrations\**\*.sql" LogicalName="ErpConnect.Storage.Migrations.%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

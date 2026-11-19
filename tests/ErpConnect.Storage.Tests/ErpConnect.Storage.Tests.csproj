@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ErpConnect.Core\ErpConnect.Core.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Security\ErpConnect.Security.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Storage\ErpConnect.Storage.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Rpc\ErpConnect.Rpc.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,642 @@
+{
+  "protocolVersion": "1.0",
+  "pipeName": "ERPConnect.Engine",
+  "maxMessageBytes": 4194304,
+  "maxJsonDepth": 64,
+  "methods": [
+    {
+      "name": "audit.query",
+      "permissionMode": "Required",
+      "permission": "audit.read",
+      "params": "AuditQueryParams",
+      "result": "AuditQueryResult"
+    },
+    {
+      "name": "audit.verifyChain",
+      "permissionMode": "Required",
+      "permission": "audit.read",
+      "params": "EmptyParams",
+      "result": "AuditVerifyResult"
+    },
+    {
+      "name": "events.subscribe",
+      "permissionMode": "PerTopic",
+      "permission": null,
+      "params": "EventsSubscribeParams",
+      "result": "EventsSubscribeResult"
+    },
+    {
+      "name": "events.unsubscribe",
+      "permissionMode": "PerTopic",
+      "permission": null,
+      "params": "EventsSubscribeParams",
+      "result": "EventsSubscribeResult"
+    },
+    {
+      "name": "session.hello",
+      "permissionMode": "None",
+      "permission": null,
+      "params": "HelloParams",
+      "result": "HelloResult"
+    },
+    {
+      "name": "settings.get",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "SettingsResult"
+    },
+    {
+      "name": "settings.update",
+      "permissionMode": "Required",
+      "permission": "settings.edit",
+      "params": "SettingsUpdateParams",
+      "result": "SettingsResult"
+    },
+    {
+      "name": "system.getInfo",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "SystemInfoResult"
+    },
+    {
+      "name": "system.getStatus",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "SystemStatusResult"
+    },
+    {
+      "name": "users.assignRole",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "AssignRoleParams",
+      "result": "RoleAssignmentDto"
+    },
+    {
+      "name": "users.listAssignments",
+      "permissionMode": "Required",
+      "permission": "users.read",
+      "params": "EmptyParams",
+      "result": "ListAssignmentsResult"
+    },
+    {
+      "name": "users.resolvePrincipal",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "ResolvePrincipalParams",
+      "result": "ResolvePrincipalResult"
+    },
+    {
+      "name": "users.revokeRole",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "RevokeRoleParams",
+      "result": "RevokeRoleResult"
+    },
+    {
+      "name": "vault.getStatus",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "VaultStatusResult"
+    }
+  ],
+  "notifications": [
+    {
+      "name": "audit.appended",
+      "permission": "audit.read",
+      "payload": "AuditAppendedPayload"
+    },
+    {
+      "name": "engine.statusChanged",
+      "permission": "dashboard.read",
+      "payload": "EngineStatusChangedPayload"
+    },
+    {
+      "name": "settings.changed",
+      "permission": "settings.read",
+      "payload": "SettingsChangedPayload"
+    }
+  ],
+  "errors": [
+    {
+      "name": "Conflict",
+      "code": -32004
+    },
+    {
+      "name": "EngineUnavailable",
+      "code": -32010
+    },
+    {
+      "name": "EntitlementDenied",
+      "code": -32011
+    },
+    {
+      "name": "Forbidden",
+      "code": -32002
+    },
+    {
+      "name": "InternalError",
+      "code": -32603
+    },
+    {
+      "name": "InvalidParams",
+      "code": -32602
+    },
+    {
+      "name": "InvalidRequest",
+      "code": -32600
+    },
+    {
+      "name": "MethodNotFound",
+      "code": -32601
+    },
+    {
+      "name": "NotFound",
+      "code": -32003
+    },
+    {
+      "name": "ParseError",
+      "code": -32700
+    },
+    {
+      "name": "ProtocolVersionMismatch",
+      "code": -32006
+    },
+    {
+      "name": "Unauthenticated",
+      "code": -32001
+    },
+    {
+      "name": "ValidationFailed",
+      "code": -32005
+    }
+  ],
+  "types": {
+    "AssignRoleParams": [
+      {
+        "name": "principalSid",
+        "type": "string"
+      },
+      {
+        "name": "principalName",
+        "type": "string"
+      },
+      {
+        "name": "principalKind",
+        "type": "string"
+      },
+      {
+        "name": "role",
+        "type": "string"
+      }
+    ],
+    "AuditAppendedPayload": [
+      {
+        "name": "sequence",
+        "type": "number"
+      },
+      {
+        "name": "action",
+        "type": "string"
+      },
+      {
+        "name": "outcome",
+        "type": "string"
+      }
+    ],
+    "AuditEventDto": [
+      {
+        "name": "sequence",
+        "type": "number"
+      },
+      {
+        "name": "timestamp",
+        "type": "string"
+      },
+      {
+        "name": "actorSid",
+        "type": "string"
+      },
+      {
+        "name": "actorName",
+        "type": "string"
+      },
+      {
+        "name": "action",
+        "type": "string"
+      },
+      {
+        "name": "target",
+        "type": "string"
+      },
+      {
+        "name": "outcome",
+        "type": "string"
+      },
+      {
+        "name": "details",
+        "type": "string | null"
+      },
+      {
+        "name": "correlationId",
+        "type": "string"
+      },
+      {
+        "name": "hash",
+        "type": "string"
+      }
+    ],
+    "AuditQueryParams": [
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      },
+      {
+        "name": "action",
+        "type": "string | null"
+      },
+      {
+        "name": "from",
+        "type": "string | null"
+      },
+      {
+        "name": "to",
+        "type": "string | null"
+      }
+    ],
+    "AuditQueryResult": [
+      {
+        "name": "items",
+        "type": "AuditEventDto[]"
+      },
+      {
+        "name": "total",
+        "type": "number"
+      },
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      }
+    ],
+    "AuditVerifyResult": [
+      {
+        "name": "valid",
+        "type": "boolean"
+      },
+      {
+        "name": "checkedCount",
+        "type": "number"
+      },
+      {
+        "name": "firstInvalidSequence",
+        "type": "number | null"
+      },
+      {
+        "name": "reason",
+        "type": "string | null"
+      }
+    ],
+    "DatabaseStatusDto": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "ok",
+        "type": "boolean"
+      },
+      {
+        "name": "schemaVersion",
+        "type": "number"
+      }
+    ],
+    "EmptyParams": [],
+    "EngineStatusChangedPayload": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "at",
+        "type": "string"
+      }
+    ],
+    "EventsSubscribeParams": [
+      {
+        "name": "topics",
+        "type": "string[]"
+      }
+    ],
+    "EventsSubscribeResult": [
+      {
+        "name": "subscribed",
+        "type": "string[]"
+      }
+    ],
+    "FieldErrorDto": [
+      {
+        "name": "field",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "HelloParams": [
+      {
+        "name": "clientName",
+        "type": "string"
+      },
+      {
+        "name": "clientVersion",
+        "type": "string"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "string"
+      }
+    ],
+    "HelloResult": [
+      {
+        "name": "sessionId",
+        "type": "string"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "string"
+      },
+      {
+        "name": "serverVersion",
+        "type": "string"
+      },
+      {
+        "name": "userSid",
+        "type": "string"
+      },
+      {
+        "name": "userName",
+        "type": "string"
+      },
+      {
+        "name": "roles",
+        "type": "string[]"
+      },
+      {
+        "name": "permissions",
+        "type": "string[]"
+      }
+    ],
+    "ListAssignmentsResult": [
+      {
+        "name": "items",
+        "type": "RoleAssignmentDto[]"
+      }
+    ],
+    "ResolvePrincipalParams": [
+      {
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "ResolvePrincipalResult": [
+      {
+        "name": "found",
+        "type": "boolean"
+      },
+      {
+        "name": "sid",
+        "type": "string | null"
+      },
+      {
+        "name": "name",
+        "type": "string | null"
+      },
+      {
+        "name": "kind",
+        "type": "string | null"
+      }
+    ],
+    "RevokeRoleParams": [
+      {
+        "name": "assignmentId",
+        "type": "number"
+      }
+    ],
+    "RevokeRoleResult": [
+      {
+        "name": "revoked",
+        "type": "boolean"
+      }
+    ],
+    "RoleAssignmentDto": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "principalSid",
+        "type": "string"
+      },
+      {
+        "name": "principalName",
+        "type": "string"
+      },
+      {
+        "name": "principalKind",
+        "type": "string"
+      },
+      {
+        "name": "role",
+        "type": "string"
+      },
+      {
+        "name": "scope",
+        "type": "string"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "createdBy",
+        "type": "string"
+      }
+    ],
+    "RpcErrorData": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "correlationId",
+        "type": "string"
+      },
+      {
+        "name": "fields",
+        "type": "FieldErrorDto[] | null"
+      }
+    ],
+    "SettingsChangedPayload": [
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "SettingsDto": [
+      {
+        "name": "runHeaderRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "succeededLogRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "failedLogRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "rejectRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "deduplicationRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "logLevel",
+        "type": "string"
+      },
+      {
+        "name": "language",
+        "type": "string"
+      }
+    ],
+    "SettingsResult": [
+      {
+        "name": "settings",
+        "type": "SettingsDto"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "SettingsUpdateParams": [
+      {
+        "name": "settings",
+        "type": "SettingsDto"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "number"
+      }
+    ],
+    "SystemInfoResult": [
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "machineName",
+        "type": "string"
+      },
+      {
+        "name": "serviceAccount",
+        "type": "string"
+      },
+      {
+        "name": "dataDirectory",
+        "type": "string"
+      },
+      {
+        "name": "logDirectory",
+        "type": "string"
+      },
+      {
+        "name": "osDescription",
+        "type": "string"
+      },
+      {
+        "name": "installedAt",
+        "type": "string"
+      }
+    ],
+    "SystemStatusResult": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "uptimeSeconds",
+        "type": "number"
+      },
+      {
+        "name": "dataDiskFreeBytes",
+        "type": "number"
+      },
+      {
+        "name": "dataDiskTotalBytes",
+        "type": "number"
+      },
+      {
+        "name": "databases",
+        "type": "DatabaseStatusDto[]"
+      },
+      {
+        "name": "vault",
+        "type": "VaultStatusResult"
+      },
+      {
+        "name": "serverTime",
+        "type": "string"
+      }
+    ],
+    "VaultStatusResult": [
+      {
+        "name": "initialized",
+        "type": "boolean"
+      },
+      {
+        "name": "activeKeyVersion",
+        "type": "number | null"
+      },
+      {
+        "name": "secretCount",
+        "type": "number"
+      },
+      {
+        "name": "protection",
+        "type": "string"
+      }
+    ]
+  }
+}
