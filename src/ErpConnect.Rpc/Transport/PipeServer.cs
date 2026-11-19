@@ -143,7 +143,7 @@ public sealed partial class PipeServer : IAsyncDisposable
         while (!ct.IsCancellationRequested)
         {
             await _slots.WaitAsync(ct).ConfigureAwait(false);
-            NamedPipeServerStream pipe;
+            NamedPipeServerStream? pipe = null;
             try
             {
                 pipe = next ?? _options.CreatePipe(_options.PipeName, false);
@@ -153,11 +153,23 @@ public sealed partial class PipeServer : IAsyncDisposable
             }
             catch (OperationCanceledException)
             {
+                if (pipe is not null)
+                {
+                    await pipe.DisposeAsync().ConfigureAwait(false);
+                }
+
                 _slots.Release();
                 return;
             }
             catch (IOException ex)
             {
+                // Client parti avant l'acceptation (ERROR_NO_DATA sous Windows) : l'instance doit être libérée,
+                // sinon les instances fuient jusqu'au plafond du pipe et plus aucun client ne peut se connecter.
+                if (pipe is not null)
+                {
+                    await pipe.DisposeAsync().ConfigureAwait(false);
+                }
+
                 _slots.Release();
                 LogAcceptError(_logger, ex.Message);
                 await Task.Delay(100, ct).ConfigureAwait(false);
