@@ -113,6 +113,8 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
         };
         _runtime.Events.OnAuditAppended += (seq, action, outcome) =>
             Fire(RpcNotifications.AuditAppended, new AuditAppendedPayload(seq, action, outcome));
+        _runtime.Events.OnRunChanged += (runId, flowId, status) =>
+            Fire(RpcNotifications.RunChanged, new RunChangedPayload(runId, flowId, RpcEndpoints.StatusName(status)));
     }
 
     private void ApplyLogLevel(string level) => _level.MinimumLevel = level switch

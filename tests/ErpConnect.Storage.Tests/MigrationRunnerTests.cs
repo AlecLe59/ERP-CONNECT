@@ -118,11 +118,12 @@ public sealed class MigrationRunnerTests : IDisposable
     [Fact]
     public async Task Failed_migration_is_rolled_back()
     {
-        var broken = MigrationRunner.EmbeddedMigrations(DatabaseKind.Config)
-            .Append(new Migration(2, "0002_broken", "CREATE TABLE Ok (X INT); THIS IS NOT SQL;", "x")).ToList();
+        var embedded = MigrationRunner.EmbeddedMigrations(DatabaseKind.Config);
+        var broken = embedded
+            .Append(new Migration(embedded.Count + 1, $"{embedded.Count + 1:0000}_broken", "CREATE TABLE Ok (X INT); THIS IS NOT SQL;", "x")).ToList();
         await Should.ThrowAsync<SqliteException>(() => new MigrationRunner(Backup, _ => broken).MigrateAsync(Db(), default));
         (await Tables(DatabaseKind.Config)).ShouldNotContain("Ok");
-        (await MigrationRunner.GetSchemaVersionAsync(Db(), default)).ShouldBe(1);
+        (await MigrationRunner.GetSchemaVersionAsync(Db(), default)).ShouldBe(embedded.Count);
     }
 
     [Fact]

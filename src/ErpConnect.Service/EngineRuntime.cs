@@ -26,7 +26,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
         Clock = clock;
         Version = version;
         Config = SqliteDatabase.InDirectory(DatabaseKind.Config, paths.Data);
-        Runs = SqliteDatabase.InDirectory(DatabaseKind.Runs, paths.Data);
+        RunsDb = SqliteDatabase.InDirectory(DatabaseKind.Runs, paths.Data);
         AuditDb = SqliteDatabase.InDirectory(DatabaseKind.Audit, paths.Data);
     }
 
@@ -40,7 +40,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public SqliteDatabase Config { get; }
 
-    public SqliteDatabase Runs { get; }
+    public SqliteDatabase RunsDb { get; }
 
     public SqliteDatabase AuditDb { get; }
 
@@ -62,6 +62,17 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
     public EngineStatusService Status { get; private set; } = null!;
 
+    public ConnectionService Connections { get; private set; } = null!;
+
+    public FlowService Flows { get; private set; } = null!;
+
+    public RunService Runs { get; private set; } = null!;
+
+    /// <summary>Connecteurs installés (remplaçables par les tests).</summary>
+    public IReadOnlyList<Connectors.Sdk.IConnector> ConnectorCatalog { get; init; } = ErpConnect.Connectors.ConnectorRegistry.CreateDefault();
+
+    public RunServiceOptions RunOptions { get; init; } = new();
+
     public EngineEventHub Events { get; } = new();
 
     /// <summary>Démarrage : toute erreur ici doit arrêter le service avec un message clair.</summary>
@@ -72,7 +83,7 @@ internal sealed class EngineRuntime : IAsyncDisposable
         MigrationReports =
         [
             await runner.MigrateAsync(Config, ct).ConfigureAwait(false),
-            await runner.MigrateAsync(Runs, ct).ConfigureAwait(false),
+            await runner.MigrateAsync(RunsDb, ct).ConfigureAwait(false),
             await runner.MigrateAsync(AuditDb, ct).ConfigureAwait(false),
         ];
 
@@ -95,20 +106,31 @@ internal sealed class EngineRuntime : IAsyncDisposable
 
         Settings = new SettingsService(new SettingsRepository(Config, Clock), _audit, Events);
         _users = new UserRoleService(assignments, _audit, Principals, Clock);
-        Status = new EngineStatusService(Paths, [Config, Runs, AuditDb], _vault, Secrets, Clock, protector.Description, Version)
+        Status = new EngineStatusService(Paths, [Config, RunsDb, AuditDb], _vault, Secrets, Clock, protector.Description, Version)
         {
             Events = Events,
         };
+
+        var connections = new ConnectionRepository(Config);
+        var flows = new FlowRepository(Config);
+        Connections = new ConnectionService(connections, flows, _vault, _audit, Clock, ConnectorCatalog);
+        Flows = new FlowService(flows, connections, _audit, Clock);
+        Runs = new RunService(new RunRepository(RunsDb), Flows, Connections, _audit, Clock, Events, RunOptions);
+        await Runs.RecoverInterruptedAsync(ct).ConfigureAwait(false);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        if (Runs is not null)
+        {
+            await Runs.DisposeAsync().ConfigureAwait(false);
+        }
+
         _vault?.Dispose();
         _keys?.Dispose();
         _audit?.Dispose();
         _users?.Dispose();
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        return ValueTask.CompletedTask;
     }
 
     private static InvalidOperationException NotStarted() => new("Moteur non démarré.");
@@ -128,4 +150,8 @@ internal sealed class EngineEventHub : IEngineEventSink
     public void SettingsChanged(long version, string updatedBy) => OnSettingsChanged?.Invoke(version, updatedBy);
 
     public void AuditAppended(long sequence, string action, string outcome) => OnAuditAppended?.Invoke(sequence, action, outcome);
+
+    public event Action<string, string, Core.Runs.RunStatus>? OnRunChanged;
+
+    public void RunChanged(string runId, string flowId, Core.Runs.RunStatus status) => OnRunChanged?.Invoke(runId, flowId, status);
 }

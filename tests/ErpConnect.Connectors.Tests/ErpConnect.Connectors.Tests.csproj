@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Connectors\ErpConnect.Connectors.csproj" />
+  </ItemGroup>
+</Project>

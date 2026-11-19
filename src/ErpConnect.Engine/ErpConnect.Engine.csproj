@@ -6,5 +6,8 @@
     <ProjectReference Include="..\ErpConnect.Core\ErpConnect.Core.csproj" />
     <ProjectReference Include="..\ErpConnect.Storage\ErpConnect.Storage.csproj" />
     <ProjectReference Include="..\ErpConnect.Security\ErpConnect.Security.csproj" />
+    <ProjectReference Include="..\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+    <ProjectReference Include="..\ErpConnect.Connectors\ErpConnect.Connectors.csproj" />
+    <ProjectReference Include="..\ErpConnect.Flows\ErpConnect.Flows.csproj" />
   </ItemGroup>
 </Project>

@@ -18,6 +18,8 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <Company>ERP CONNECT</Company>
     <Product>ERP CONNECT</Product>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
+    <!-- CA1716 : conflit de noms avec les mots-clés VB.NET ; aucun consommateur VB, règle désactivée. -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
   </PropertyGroup>
 </Project>

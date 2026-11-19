@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Connectors</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MiniExcel" />
+    <PackageReference Include="SSH.NET" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ErpConnect.Connectors.Tests" />
+  </ItemGroup>
+</Project>

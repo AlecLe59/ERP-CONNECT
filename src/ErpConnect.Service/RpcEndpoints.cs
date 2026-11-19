@@ -1,9 +1,13 @@
 using System.Text.Json;
+using ErpConnect.Connectors.Sdk;
 using ErpConnect.Contracts;
 using ErpConnect.Core.Audit;
 using ErpConnect.Core.Authorization;
+using ErpConnect.Core.Flows;
+using ErpConnect.Core.Runs;
 using ErpConnect.Core.Settings;
 using ErpConnect.Engine;
+using ErpConnect.Flows;
 using ErpConnect.Rpc.Dispatch;
 
 namespace ErpConnect.Service;
@@ -136,7 +140,128 @@ internal static class RpcEndpoints
 
             return Task.FromResult(new EventsSubscribeResult(ctx.Session.Subscriptions.Keys.Order(StringComparer.Ordinal).ToArray()));
         });
+
+        RegisterFlows(dispatcher, runtime);
     }
+
+    private static void RegisterFlows(RpcDispatcher dispatcher, EngineRuntime runtime)
+    {
+        dispatcher.Register<EmptyParams, ConnectorsListResult>(RpcMethods.ConnectorsList, (_, _, _) => Task.FromResult(new ConnectorsListResult(
+            runtime.Connections.Connectors.Select(c => new ConnectorDto(
+                c.Manifest.Id, c.Manifest.Name, c.Manifest.Version, c.Manifest.Description,
+                Enum.GetValues<ConnectorCapabilities>().Where(f => f != ConnectorCapabilities.None && c.Manifest.Capabilities.HasFlag(f)).Select(f => JsonNamingPolicy.CamelCase.ConvertName(f.ToString())).ToArray(),
+                c.Manifest.ConfigSchema.Select(ToDto).ToArray())).ToArray(),
+            ErpConnect.Connectors.Formats.FormatRegistry.All.Select(f => new FormatDto(f.Id, f.Options.Select(ToDto).ToArray())).ToArray())));
+
+        dispatcher.Register<EmptyParams, ConnectionsListResult>(RpcMethods.ConnectionsList, async (_, _, ct) =>
+            new ConnectionsListResult((await runtime.Connections.ListAsync(ct).ConfigureAwait(false)).Select(ToDto).ToArray()));
+
+        dispatcher.Register<ConnectionSaveParams, ConnectionDto>(RpcMethods.ConnectionsSave, async (ctx, p, ct) =>
+        {
+            var values = p.Settings.GroupBy(kv => kv.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
+            var secrets = p.Secrets.GroupBy(kv => kv.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
+            return ToDto(await Guard(() => runtime.Connections.SaveAsync(ctx.Caller, p.Id, p.Name, p.ConnectorId, values, secrets, p.ClearSecrets, p.ExpectedVersion, ctx.CorrelationId, ct)).ConfigureAwait(false));
+        });
+
+        dispatcher.Register<IdParams, DeleteResult>(RpcMethods.ConnectionsDelete, async (ctx, p, ct) =>
+            new DeleteResult(await Guard(() => runtime.Connections.DeleteAsync(ctx.Caller, p.Id, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<IdParams, ConnectionTestResultDto>(RpcMethods.ConnectionsTest, async (ctx, p, ct) =>
+        {
+            var r = await Guard(() => runtime.Connections.TestAsync(ctx.Caller, p.Id, ctx.CorrelationId, ct)).ConfigureAwait(false);
+            return new ConnectionTestResultDto(r.Success, r.Message, (long)r.Duration.TotalMilliseconds);
+        });
+
+        dispatcher.Register<EmptyParams, FlowsListResult>(RpcMethods.FlowsList, async (_, _, ct) =>
+            new FlowsListResult((await runtime.Flows.ListAsync(ct).ConfigureAwait(false)).Select(ToDto).ToArray()));
+
+        dispatcher.Register<FlowGetParams, FlowDetailResult>(RpcMethods.FlowsGet, async (_, p, ct) =>
+        {
+            var flow = await runtime.Flows.GetAsync(p.Id, ct).ConfigureAwait(false) ?? throw new RpcException(RpcErrorCodes.NotFound, "Flux introuvable.");
+            var version = await runtime.Flows.GetVersionAsync(p.Id, p.Version ?? flow.DraftVersion, ct).ConfigureAwait(false)
+                ?? throw new RpcException(RpcErrorCodes.NotFound, "Version introuvable.");
+            return new FlowDetailResult(ToDto(flow), version.Version, ToDto(FlowDefinition.Parse(version.DefinitionJson)), version.CreatedAt, version.CreatedBy, version.PublishedAt);
+        });
+
+        dispatcher.Register<FlowSaveParams, FlowSummaryDto>(RpcMethods.FlowsSave, async (ctx, p, ct) =>
+            ToDto(await Guard(() => runtime.Flows.SaveAsync(ctx.Caller, p.Id, p.Name, p.Description, FromDto(p.Definition), p.ExpectedDraftVersion, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<FlowPublishParams, FlowSummaryDto>(RpcMethods.FlowsPublish, async (ctx, p, ct) =>
+            ToDto(await Guard(() => runtime.Flows.PublishAsync(ctx.Caller, p.Id, p.Version, ctx.CorrelationId, ct)).ConfigureAwait(false)));
+
+        dispatcher.Register<RunStartParams, RunDto>(RpcMethods.RunsStart, async (ctx, p, ct) =>
+        {
+            if (p.UseDraft && !ctx.Permissions.Contains(Permissions.FlowsEdit))
+            {
+                throw new RpcException(RpcErrorCodes.Forbidden, "Tester une version non publiée exige le droit de modifier les flux.");
+            }
+
+            return ToDto(await Guard(() => runtime.Runs.StartAsync(ctx.Caller, p.FlowId, p.UseDraft, ctx.CorrelationId, ct)).ConfigureAwait(false));
+        });
+
+        dispatcher.Register<RunsListParams, RunsListResult>(RpcMethods.RunsList, async (_, p, ct) =>
+        {
+            if (p.Page < 1 || p.PageSize is < 1 or > 200)
+            {
+                throw RpcException.Validation([new FieldErrorDto("pageSize", "page ≥ 1, pageSize entre 1 et 200.")]);
+            }
+
+            RunStatus? status = p.Status is null ? null : ParseStatus(p.Status);
+            var (items, total) = await runtime.Runs.QueryAsync(new RunQuery(p.FlowId, status, p.Page, p.PageSize), ct).ConfigureAwait(false);
+            return new RunsListResult(items.Select(ToDto).ToArray(), total, p.Page, p.PageSize);
+        });
+
+        dispatcher.Register<IdParams, RunDetailResult>(RpcMethods.RunsGet, async (_, p, ct) =>
+        {
+            var run = await runtime.Runs.GetAsync(p.Id, ct).ConfigureAwait(false) ?? throw new RpcException(RpcErrorCodes.NotFound, "Exécution introuvable.");
+            var rejects = await runtime.Runs.RejectsAsync(p.Id, 500, ct).ConfigureAwait(false);
+            var logs = await runtime.Runs.LogsAsync(p.Id, 1000, ct).ConfigureAwait(false);
+            return new RunDetailResult(ToDto(run),
+                rejects.Select(r => new RunRejectDto(r.BatchNumber, r.RecordIndex, r.Stage, r.Reason, r.RecordJson, r.At)).ToArray(),
+                logs.Select(l => new RunLogDto(l.At, l.Level, l.Message)).ToArray());
+        });
+
+        dispatcher.Register<IdParams, RunCancelResult>(RpcMethods.RunsCancel, async (ctx, p, ct) =>
+        {
+            var admin = (await runtime.Access.GetRolesAsync(ctx.Caller, ct).ConfigureAwait(false)).Contains(Role.Administrator);
+            return new RunCancelResult(await Guard(() => runtime.Runs.CancelAsync(ctx.Caller, p.Id, admin, ctx.CorrelationId, ct)).ConfigureAwait(false));
+        });
+    }
+
+    internal static string StatusName(RunStatus s) => JsonNamingPolicy.CamelCase.ConvertName(s.ToString());
+
+    private static RunStatus ParseStatus(string s) =>
+        Enum.GetValues<RunStatus>().FirstOrDefault(v => StatusName(v) == s) is var v && StatusName(v) == s
+            ? v
+            : throw RpcException.Validation([new FieldErrorDto("status", "Statut inconnu.")]);
+
+    private static ConfigFieldDto ToDto(ConfigField f) => new(
+        f.Name, f.Label, JsonNamingPolicy.CamelCase.ConvertName(f.Type.ToString()), f.Required, f.Secret, f.Default, f.Choices?.ToArray() ?? [], f.Help);
+
+    private static ConnectionDto ToDto(ConnectionRecord c) => new(
+        c.Id, c.Name, c.ConnectorId, c.Settings.Select(kv => new KeyValueDto(kv.Key, kv.Value)).ToArray(), c.SecretFields.ToArray(), c.Version, c.UpdatedAt, c.UpdatedBy);
+
+    private static FlowSummaryDto ToDto(FlowRecord f) => new(f.Id, f.Name, f.Description, f.DraftVersion, f.PublishedVersion, f.UpdatedAt, f.UpdatedBy);
+
+    private static RunDto ToDto(RunRecord r) => new(
+        r.Id, r.FlowId, r.FlowVersion, StatusName(r.Status), r.Status.ToFrenchLabel(), r.TriggeredBy, r.ParentRunId, r.CreatedAt, r.StartedAt, r.EndedAt,
+        r.ReadCount, r.WrittenCount, r.RejectedCount, r.SkippedCount, r.Error, r.Trigger);
+
+    private static KeyValueDto[] ToDto(OptionEntry[] o) => o.Select(e => new KeyValueDto(e.Key, e.Value)).ToArray();
+
+    private static OptionEntry[] FromDto(KeyValueDto[] o) => o.Where(e => e.Value is not null).Select(e => new OptionEntry(e.Key, e.Value!)).ToArray();
+
+    internal static FlowDefinitionDto ToDto(FlowDefinition d) => new(
+        new SourceSpecDto(d.Source.ConnectionId, d.Source.Resource, ToDto(d.Source.Options)),
+        new TargetSpecDto(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, ToDto(d.Target.Options)),
+        new MappingSpecDto(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMapDto(f.Target, f.Expression)).ToArray()),
+        d.BatchSize, d.MaxRejects);
+
+    internal static FlowDefinition FromDto(FlowDefinitionDto d) => new(
+        new SourceSpec(d.Source.ConnectionId, d.Source.Resource, FromDto(d.Source.Options)),
+        new TargetSpec(d.Target.ConnectionId, d.Target.Resource, d.Target.Mode, FromDto(d.Target.Options)),
+        new MappingSpec(d.Mapping.Mode, d.Mapping.Fields.Select(f => new FieldMap(f.Target, f.Expression)).ToArray()),
+        d.BatchSize, d.MaxRejects);
 
     private static List<RpcNotificationDescriptor> ValidateTopics(string[] topics)
     {

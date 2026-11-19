@@ -46,7 +46,8 @@ jobs:
           git diff --exit-code -- ui/packages/contracts src/ErpConnect.Contracts/contract.snapshot.json
       - name: Tests
         if: steps.detect.outputs.present == 'true'
-        run: dotnet test ErpConnect.slnx -c Release --no-build --logger trx --results-directory TestResults
+        # Les tests SFTP exigent un serveur OpenSSH local : ils tournent dans le job Linux.
+        run: dotnet test ErpConnect.slnx -c Release --no-build --filter "Category!=Sftp" --logger trx --results-directory TestResults
       - name: Paquets vulnérables
         if: steps.detect.outputs.present == 'true'
         shell: pwsh
@@ -58,6 +59,30 @@ jobs:
         if: always() && steps.detect.outputs.present == 'true'
         with:
           name: dotnet-test-results
+          path: TestResults
+
+  dotnet-linux:
+    name: Tests .NET (Linux, SFTP réel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Serveur OpenSSH pour les tests SFTP
+        run: |
+          sudo apt-get update && sudo apt-get install -y openssh-server
+          sudo mkdir -p /run/sshd
+      - run: dotnet restore ErpConnect.slnx --locked-mode
+      - run: dotnet build ErpConnect.slnx -c Release --no-restore
+      # Les tests SFTP lancent leur propre sshd sans privilège (port local aléatoire, clés générées).
+      - name: Tests
+        run: dotnet test ErpConnect.slnx -c Release --no-build --logger trx --results-directory TestResults
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dotnet-linux-test-results
           path: TestResults
 
   ui:

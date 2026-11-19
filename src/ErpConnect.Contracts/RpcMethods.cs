@@ -22,7 +22,7 @@ public sealed record RpcMethodDescriptor(
 
 public sealed record RpcNotificationDescriptor(string Name, string Permission, Type PayloadType, string Description);
 
-/// <summary>Contrat de la Phase 2 : source unique pour le moteur et pour le client TypeScript généré.</summary>
+/// <summary>Contrat des Phases 2 et suivantes : source unique pour le moteur et pour le client TypeScript généré.</summary>
 public static class RpcMethods
 {
     public static readonly RpcMethodDescriptor SessionHello = new(
@@ -79,11 +79,53 @@ public static class RpcMethods
         "events.unsubscribe", PermissionMode.PerTopic, null, typeof(EventsSubscribeParams), typeof(EventsSubscribeResult),
         "Désabonnement");
 
+    // Phase 3 : connecteurs, connexions, flux, exécutions (protocole 1.1).
+    public static readonly RpcMethodDescriptor ConnectorsList = new(
+        "connectors.list", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(ConnectorsListResult), "Connecteurs et formats installés");
+
+    public static readonly RpcMethodDescriptor ConnectionsList = new(
+        "connections.list", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(ConnectionsListResult), "Connexions (sans secrets)");
+
+    public static readonly RpcMethodDescriptor ConnectionsSave = new(
+        "connections.save", PermissionMode.Required, "connections.edit", typeof(ConnectionSaveParams), typeof(ConnectionDto), "Créer ou modifier une connexion");
+
+    public static readonly RpcMethodDescriptor ConnectionsDelete = new(
+        "connections.delete", PermissionMode.Required, "connections.edit", typeof(IdParams), typeof(DeleteResult), "Supprimer une connexion inutilisée");
+
+    public static readonly RpcMethodDescriptor ConnectionsTest = new(
+        "connections.test", PermissionMode.Required, "connections.use", typeof(IdParams), typeof(ConnectionTestResultDto), "Tester une connexion");
+
+    public static readonly RpcMethodDescriptor FlowsList = new(
+        "flows.list", PermissionMode.Required, "flows.read", typeof(EmptyParams), typeof(FlowsListResult), "Liste des flux");
+
+    public static readonly RpcMethodDescriptor FlowsGet = new(
+        "flows.get", PermissionMode.Required, "flows.read", typeof(FlowGetParams), typeof(FlowDetailResult), "Définition d'une version de flux");
+
+    public static readonly RpcMethodDescriptor FlowsSave = new(
+        "flows.save", PermissionMode.Required, "flows.edit", typeof(FlowSaveParams), typeof(FlowSummaryDto), "Enregistrer une nouvelle version de flux");
+
+    public static readonly RpcMethodDescriptor FlowsPublish = new(
+        "flows.publish", PermissionMode.Required, "flows.edit", typeof(FlowPublishParams), typeof(FlowSummaryDto), "Publier une version");
+
+    public static readonly RpcMethodDescriptor RunsStart = new(
+        "runs.start", PermissionMode.Required, "flows.run", typeof(RunStartParams), typeof(RunDto), "Lancer une exécution manuelle");
+
+    public static readonly RpcMethodDescriptor RunsList = new(
+        "runs.list", PermissionMode.Required, "flows.read", typeof(RunsListParams), typeof(RunsListResult), "Historique des exécutions");
+
+    public static readonly RpcMethodDescriptor RunsGet = new(
+        "runs.get", PermissionMode.Required, "flows.read", typeof(IdParams), typeof(RunDetailResult), "Détail, rejets et journal d'une exécution");
+
+    public static readonly RpcMethodDescriptor RunsCancel = new(
+        "runs.cancel", PermissionMode.Required, "runs.cancel", typeof(IdParams), typeof(RunCancelResult), "Annuler (après le lot en cours)");
+
     public static IReadOnlyList<RpcMethodDescriptor> All { get; } =
     [
         SessionHello, SystemGetStatus, SystemGetInfo, SettingsGet, SettingsUpdate, UsersListAssignments,
         UsersAssignRole, UsersRevokeRole, UsersResolvePrincipal, AuditQuery, AuditVerifyChain, VaultGetStatus,
         EventsSubscribe, EventsUnsubscribe,
+        ConnectorsList, ConnectionsList, ConnectionsSave, ConnectionsDelete, ConnectionsTest,
+        FlowsList, FlowsGet, FlowsSave, FlowsPublish, RunsStart, RunsList, RunsGet, RunsCancel,
     ];
 
     public static RpcMethodDescriptor? Find(string name) => All.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));
@@ -100,7 +142,10 @@ public static class RpcNotifications
     public static readonly RpcNotificationDescriptor AuditAppended = new(
         "audit.appended", "audit.read", typeof(AuditAppendedPayload), "Nouvelle entrée d'audit");
 
-    public static IReadOnlyList<RpcNotificationDescriptor> All { get; } = [EngineStatusChanged, SettingsChanged, AuditAppended];
+    public static readonly RpcNotificationDescriptor RunChanged = new(
+        "runs.changed", "flows.read", typeof(RunChangedPayload), "Changement de statut d'une exécution");
+
+    public static IReadOnlyList<RpcNotificationDescriptor> All { get; } = [EngineStatusChanged, SettingsChanged, AuditAppended, RunChanged];
 
     public static RpcNotificationDescriptor? Find(string name) => All.FirstOrDefault(n => string.Equals(n.Name, name, StringComparison.Ordinal));
 }

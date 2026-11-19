@@ -48,6 +48,19 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             ["audit.query"] = () => new AuditQueryParams(1, 10, null, null, null),
             ["audit.verifyChain"] = () => null,
             ["vault.getStatus"] = () => null,
+            ["connectors.list"] = () => null,
+            ["connections.list"] = () => null,
+            ["connections.save"] = () => new ConnectionSaveParams(null, "", "inconnu", [], [], [], 0),
+            ["connections.delete"] = () => new IdParams("absent"),
+            ["connections.test"] = () => new IdParams("absent"),
+            ["flows.list"] = () => null,
+            ["flows.get"] = () => new FlowGetParams("absent", null),
+            ["flows.save"] = () => new FlowSaveParams(null, "", "", new FlowDefinitionDto(new("", "", []), new("", "", "createNew", []), new("identity", []), 100, 10), 0),
+            ["flows.publish"] = () => new FlowPublishParams("absent", 1),
+            ["runs.start"] = () => new RunStartParams("absent", false),
+            ["runs.list"] = () => new RunsListParams(null, null, 1, 10),
+            ["runs.get"] = () => new IdParams("absent"),
+            ["runs.cancel"] = () => new IdParams("absent"),
         };
 
         var checkedPairs = 0;
@@ -71,7 +84,7 @@ public sealed class PermissionMatrixTests : IAsyncLifetime
             }
         }
 
-        checkedPairs.ShouldBe(5 * 11);
+        checkedPairs.ShouldBe(5 * RpcMethods.All.Count(m => m.PermissionMode == PermissionMode.Required));
         var denied = (await admin.CallAsync("audit.query", new AuditQueryParams(1, 200, null, null, null))).Result()["items"]!.AsArray()
             .Count(e => e!["outcome"]!.GetValue<string>() == "denied" && e["target"]!.GetValue<string>() == "rpc");
         denied.ShouldBe(expectedDenials);

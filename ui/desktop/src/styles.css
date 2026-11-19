@@ -33,3 +33,19 @@ input, select { display: block; margin-top: 4px; font: inherit; padding: 4px 6px
 .actions { display: flex; gap: 8px; justify-content: flex-end; }
 .danger { color: var(--danger); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* Phase 3 : éditeur de flux, connexions, exécutions */
+.zones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.zone { border: 1px solid #c8ccd4; border-radius: 6px; padding: 0.75rem; }
+.zone legend { font-weight: 600; padding: 0 0.25rem; }
+.zone label { display: block; margin-bottom: 0.5rem; }
+.panel { border-top: 2px solid #c8ccd4; margin-top: 1rem; padding-top: 1rem; }
+.counters { display: grid; grid-template-columns: max-content max-content; gap: 0.25rem 1rem; }
+.log { font-family: ui-monospace, monospace; font-size: 0.85rem; max-height: 20rem; overflow: auto; }
+.log .error { color: #a4161a; }
+.log .warning, .warn { color: #8a5a00; }
+.ok { color: #1b6e20; }
+.link { background: none; border: none; color: #1f4fbf; text-decoration: underline; cursor: pointer; padding: 0; }
+textarea.secret { font-family: ui-monospace, monospace; width: 100%; }
+label.inline { display: flex; gap: 0.5rem; align-items: center; }
+@media (max-width: 1100px) { .zones { grid-template-columns: 1fr; } }

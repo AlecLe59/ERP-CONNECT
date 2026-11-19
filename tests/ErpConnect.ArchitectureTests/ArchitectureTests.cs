@@ -13,8 +13,15 @@ public class ArchitectureTests
         ["ErpConnect.Security"] = ["ErpConnect.Core"],
         ["ErpConnect.Storage"] = ["ErpConnect.Core"],
         ["ErpConnect.Rpc"] = ["ErpConnect.Core", "ErpConnect.Contracts", "ErpConnect.Security"],
-        ["ErpConnect.Engine"] = ["ErpConnect.Core", "ErpConnect.Storage", "ErpConnect.Security"],
-        ["ErpConnect.Service"] = ["ErpConnect.Core", "ErpConnect.Contracts", "ErpConnect.Security", "ErpConnect.Storage", "ErpConnect.Rpc", "ErpConnect.Engine"],
+        ["ErpConnect.Connectors.Sdk"] = [],
+        ["ErpConnect.Connectors"] = ["ErpConnect.Connectors.Sdk"],
+        ["ErpConnect.Flows"] = ["ErpConnect.Connectors.Sdk"],
+        ["ErpConnect.Engine"] = ["ErpConnect.Core", "ErpConnect.Storage", "ErpConnect.Security", "ErpConnect.Connectors.Sdk", "ErpConnect.Connectors", "ErpConnect.Flows"],
+        ["ErpConnect.Service"] =
+        [
+            "ErpConnect.Core", "ErpConnect.Contracts", "ErpConnect.Security", "ErpConnect.Storage", "ErpConnect.Rpc", "ErpConnect.Engine",
+            "ErpConnect.Connectors.Sdk", "ErpConnect.Connectors", "ErpConnect.Flows",
+        ],
     };
 
     public static TheoryData<string> Projects => new(AllowedReferences.Keys);

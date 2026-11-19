@@ -35,13 +35,15 @@ public class ContractSnapshotTests
     }
 
     [Fact]
-    public void Phase2_method_list_is_exactly_the_validated_one()
+    public void Method_list_is_exactly_the_validated_one()
     {
         RpcMethods.All.Select(m => m.Name).ShouldBe(
         [
             "session.hello", "system.getStatus", "system.getInfo", "settings.get", "settings.update", "users.listAssignments",
             "users.assignRole", "users.revokeRole", "users.resolvePrincipal", "audit.query", "audit.verifyChain", "vault.getStatus",
             "events.subscribe", "events.unsubscribe",
+            "connectors.list", "connections.list", "connections.save", "connections.delete", "connections.test",
+            "flows.list", "flows.get", "flows.save", "flows.publish", "runs.start", "runs.list", "runs.get", "runs.cancel",
         ]);
         RpcMethods.All.Select(m => m.Name).ShouldBeUnique();
     }

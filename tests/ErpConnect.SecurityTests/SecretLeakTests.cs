@@ -45,8 +45,9 @@ public sealed class SecretLeakTests : IAsyncLifetime
         }
 
         // Sauvegarde déclenchée par une nouvelle migration de test.
-        var extra = MigrationRunner.EmbeddedMigrations(DatabaseKind.Config)
-            .Append(new Migration(2, "0002_t", "CREATE TABLE T (X INT);", MigrationRunner.Hash("CREATE TABLE T (X INT);"))).ToList();
+        var embedded = MigrationRunner.EmbeddedMigrations(DatabaseKind.Config);
+        var extra = embedded
+            .Append(new Migration(embedded.Count + 1, $"{embedded.Count + 1:0000}_t", "CREATE TABLE T (X INT);", MigrationRunner.Hash("CREATE TABLE T (X INT);"))).ToList();
         (await new MigrationRunner(_engine.Runtime.Paths.Backup, _ => extra).MigrateAsync(_engine.Runtime.Config, default)).BackupPath.ShouldNotBeNull();
 
         var needles = new[]

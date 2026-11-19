@@ -8,6 +8,8 @@ public interface IEngineEventSink
     void SettingsChanged(long version, string updatedBy);
 
     void AuditAppended(long sequence, string action, string outcome);
+
+    void RunChanged(string runId, string flowId, ErpConnect.Core.Runs.RunStatus status);
 }
 
 public sealed class NullEngineEventSink : IEngineEventSink
@@ -23,6 +25,10 @@ public sealed class NullEngineEventSink : IEngineEventSink
     }
 
     public void AuditAppended(long sequence, string action, string outcome)
+    {
+    }
+
+    public void RunChanged(string runId, string flowId, ErpConnect.Core.Runs.RunStatus status)
     {
     }
 }

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Flows</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+  </ItemGroup>
+</Project>

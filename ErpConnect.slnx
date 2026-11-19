@@ -1,8 +1,11 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ErpConnect.Connectors.Sdk/ErpConnect.Connectors.Sdk.csproj" />
+    <Project Path="src/ErpConnect.Connectors/ErpConnect.Connectors.csproj" />
     <Project Path="src/ErpConnect.Contracts/ErpConnect.Contracts.csproj" />
     <Project Path="src/ErpConnect.Core/ErpConnect.Core.csproj" />
     <Project Path="src/ErpConnect.Engine/ErpConnect.Engine.csproj" />
+    <Project Path="src/ErpConnect.Flows/ErpConnect.Flows.csproj" />
     <Project Path="src/ErpConnect.Rpc/ErpConnect.Rpc.csproj" />
     <Project Path="src/ErpConnect.Security/ErpConnect.Security.csproj" />
     <Project Path="src/ErpConnect.Service/ErpConnect.Service.csproj" />
@@ -10,8 +13,10 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ErpConnect.ArchitectureTests/ErpConnect.ArchitectureTests.csproj" />
+    <Project Path="tests/ErpConnect.Connectors.Tests/ErpConnect.Connectors.Tests.csproj" />
     <Project Path="tests/ErpConnect.Contracts.Tests/ErpConnect.Contracts.Tests.csproj" />
     <Project Path="tests/ErpConnect.Core.Tests/ErpConnect.Core.Tests.csproj" />
+    <Project Path="tests/ErpConnect.Engine.Tests/ErpConnect.Engine.Tests.csproj" />
     <Project Path="tests/ErpConnect.Rpc.Tests/ErpConnect.Rpc.Tests.csproj" />
     <Project Path="tests/ErpConnect.Security.Tests/ErpConnect.Security.Tests.csproj" />
     <Project Path="tests/ErpConnect.SecurityTests/ErpConnect.SecurityTests.csproj" />
