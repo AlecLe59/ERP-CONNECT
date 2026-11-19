@@ -48,7 +48,7 @@ jobs:
           $out = dotnet list ErpConnect.slnx package --vulnerable --include-transitive
           $out
           if ($out -match "has the following vulnerable packages") { exit 1 }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && steps.detect.outputs.present == 'true'
         with:
           name: dotnet-test-results
