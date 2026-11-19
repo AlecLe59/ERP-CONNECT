@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Détecter la solution
         id: detect
         shell: pwsh
@@ -62,7 +62,7 @@ jobs:
       run:
         working-directory: ui/desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Détecter l'interface
         id: detect
         shell: pwsh
@@ -92,7 +92,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Détecter la coquille Tauri
         id: detect
         shell: pwsh
