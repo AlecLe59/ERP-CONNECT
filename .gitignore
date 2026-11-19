@@ -1,0 +1,62 @@
+# ===== .NET =====
+bin/
+obj/
+*.user
+*.suo
+*.rsuser
+.vs/
+TestResults/
+*.trx
+coverage/
+*.coverage
+*.coveragexml
+artifacts/
+publish/
+
+# ===== Node / React =====
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# ===== Rust / Tauri =====
+target/
+ui/desktop/src-tauri/gen/
+
+# ===== WiX / installateur =====
+*.msi
+*.wixpdb
+*.wixobj
+*.cab
+
+# ===== Données locales et journaux =====
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+logs/
+*.log
+
+# ===== SECRETS : ne jamais commiter =====
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.snk
+*.pvk
+*.spc
+*-private.pem
+secrets.json
+appsettings.*.local.json
+*.license
+*.lic
+
+# ===== Éditeurs / OS =====
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+.DS_Store

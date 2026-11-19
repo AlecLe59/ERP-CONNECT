@@ -1,0 +1,41 @@
+name: Sécurité
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1"   # chaque lundi, 05:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (historique complet)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 \
+            detect --source /repo --redact --verbose --exit-code 1
+      - name: Fichiers interdits
+        run: |
+          found=$(git ls-files | grep -Ei '\.(pfx|p12|key|snk|pvk|lic|license)$|(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)
+          if [ -n "$found" ]; then echo "Fichiers interdits suivis par git :"; echo "$found"; exit 1; fi
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        # Sur un dépôt privé, nécessite GitHub Advanced Security / Code Security.
+        continue-on-error: ${{ vars.ENABLE_GHAS != 'true' }}
+        with:
+          fail-on-severity: high

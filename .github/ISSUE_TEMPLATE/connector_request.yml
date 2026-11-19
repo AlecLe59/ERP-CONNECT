@@ -1,0 +1,39 @@
+name: Nouveau connecteur
+description: Demander ou spécifier un connecteur
+title: "[Connecteur] "
+labels: ["connecteur", "à trier"]
+body:
+  - type: input
+    id: system
+    attributes:
+      label: "Système cible (ex. SAP Business One, Sage X3, API REST d'un partenaire)"
+    validations: { required: true }
+  - type: dropdown
+    id: family
+    attributes:
+      label: Famille
+      options: [Fichiers, Bases de données, Transferts de fichiers, API et applications, Messagerie, Files de messages, Autre]
+    validations: { required: true }
+  - type: checkboxes
+    id: capabilities
+    attributes:
+      label: Capacités requises
+      options:
+        - label: Lecture (source)
+        - label: Écriture (destination)
+        - label: Transfert de fichiers
+        - label: Déclencheur
+  - type: textarea
+    id: auth
+    attributes:
+      label: "Authentification (type uniquement, jamais d'identifiants réels)"
+    validations: { required: true }
+  - type: textarea
+    id: docs
+    attributes:
+      label: "Documentation de l'API ou du format"
+  - type: textarea
+    id: tests
+    attributes:
+      label: "Environnement de test disponible"
+      description: "Serveur de test, conteneur, bac à sable éditeur ?"

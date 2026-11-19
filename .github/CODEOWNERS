@@ -1,0 +1,5 @@
+# Remplacer @OWNER par le compte GitHub du responsable du projet après création du dépôt.
+*                       @OWNER
+/src/ErpConnect.Security/ @OWNER
+/.github/               @OWNER
+/installer/             @OWNER

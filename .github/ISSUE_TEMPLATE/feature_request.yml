@@ -1,0 +1,32 @@
+name: Évolution
+description: Proposer une nouvelle fonctionnalité
+title: "[Évolution] "
+labels: ["évolution", "à trier"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: "Besoin métier"
+      description: "Quel problème cela résout-il, pour qui ?"
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "Proposition"
+    validations: { required: true }
+  - type: textarea
+    id: criteria
+    attributes:
+      label: "Critères de validation"
+      description: "Comment saura-t-on que c'est terminé et fonctionnel ?"
+    validations: { required: true }
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase envisagée
+      options: ["2 – Socle Windows", "3 – Connecteurs", "4 – Éditeur de flux", "5 – Moteur", "6 – Sécurité", "7 – Pilotage distant", "8 – Industrialisation", "Après v1"]
+  - type: textarea
+    id: security
+    attributes:
+      label: "Impact sécurité"
+      description: "Nouveau port, nouveau secret, nouvelles données remontées ?"

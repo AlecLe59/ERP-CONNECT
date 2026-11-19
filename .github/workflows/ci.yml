@@ -1,0 +1,114 @@
+# Compilation et tests. Chaque job s'exécute toujours (pour que les vérifications obligatoires
+# remontent un statut), mais ses étapes ne s'activent que lorsque le code correspondant existe.
+name: CI
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet:
+    name: Build .NET
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Détecter la solution
+        id: detect
+        shell: pwsh
+        run: |
+          $has = Test-Path "ErpConnect.slnx"
+          "present=$($has.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if (-not $has) { Write-Host "Aucune solution .NET pour l'instant : étapes ignorées." }
+      - uses: actions/setup-dotnet@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          global-json-file: global.json
+      - name: Restaurer
+        if: steps.detect.outputs.present == 'true'
+        run: dotnet restore ErpConnect.slnx --locked-mode
+      - name: Compiler
+        if: steps.detect.outputs.present == 'true'
+        run: dotnet build ErpConnect.slnx -c Release --no-restore
+      - name: Tests
+        if: steps.detect.outputs.present == 'true'
+        run: dotnet test ErpConnect.slnx -c Release --no-build --logger trx --results-directory TestResults
+      - name: Paquets vulnérables
+        if: steps.detect.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $out = dotnet list ErpConnect.slnx package --vulnerable --include-transitive
+          $out
+          if ($out -match "has the following vulnerable packages") { exit 1 }
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.detect.outputs.present == 'true'
+        with:
+          name: dotnet-test-results
+          path: TestResults
+
+  ui:
+    name: Build UI
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ui/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Détecter l'interface
+        id: detect
+        shell: pwsh
+        working-directory: .
+        run: |
+          $has = Test-Path "ui/desktop/package.json"
+          "present=$($has.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/desktop/package-lock.json
+      - if: steps.detect.outputs.present == 'true'
+        run: npm ci
+      - if: steps.detect.outputs.present == 'true'
+        run: npm run lint
+      - if: steps.detect.outputs.present == 'true'
+        run: npm run typecheck
+      - if: steps.detect.outputs.present == 'true'
+        run: npm test -- --run
+      - if: steps.detect.outputs.present == 'true'
+        run: npm audit --audit-level=high --omit=dev
+
+  tauri:
+    name: Build Tauri shell
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Détecter la coquille Tauri
+        id: detect
+        shell: pwsh
+        run: |
+          $has = Test-Path "ui/desktop/src-tauri/Cargo.toml"
+          "present=$($has.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.detect.outputs.present == 'true'
+        with:
+          components: clippy, rustfmt
+      - name: Format
+        if: steps.detect.outputs.present == 'true'
+        run: cargo fmt --manifest-path ui/desktop/src-tauri/Cargo.toml -- --check
+      - name: Clippy
+        if: steps.detect.outputs.present == 'true'
+        run: cargo clippy --manifest-path ui/desktop/src-tauri/Cargo.toml --locked -- -D warnings
+      - name: Tests
+        if: steps.detect.outputs.present == 'true'
+        run: cargo test --manifest-path ui/desktop/src-tauri/Cargo.toml --locked
