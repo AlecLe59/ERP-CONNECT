@@ -1,6 +1,6 @@
 # ADR 0012 – Control Center déployable chez l'éditeur, le client ou un intégrateur
 
-- Statut : Accepté
+- Statut : Remplacé par ADR 0016 (2026-11-20)
 - Date : 2026-11-19
 - Décideur : responsable du projet (validation de l'étude d'architecture, Phase 1)
 
