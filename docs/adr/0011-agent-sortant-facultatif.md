@@ -1,6 +1,6 @@
 # ADR 0011 – Agent distant facultatif, HTTPS sortant uniquement
 
-- Statut : Accepté
+- Statut : Remplacé par ADR 0016 (2026-11-20)
 - Date : 2026-11-19
 - Décideur : responsable du projet (validation de l'étude d'architecture, Phase 1)
 

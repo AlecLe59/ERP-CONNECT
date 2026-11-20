@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ErpConnect.Core\ErpConnect.Core.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Security\ErpConnect.Security.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Storage\ErpConnect.Storage.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Engine\ErpConnect.Engine.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Connectors.Sdk\ErpConnect.Connectors.Sdk.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Connectors\ErpConnect.Connectors.csproj" />
+    <ProjectReference Include="..\..\src\ErpConnect.Flows\ErpConnect.Flows.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\TestSupport.cs" Link="Shared\TestSupport.cs" />
+    <Compile Include="..\ErpConnect.Connectors.Tests\Support.cs" Link="Shared\ConnectorSupport.cs" />
+    <Compile Include="..\ErpConnect.Connectors.Tests\TestHttpServer.cs" Link="Shared\TestHttpServer.cs" />
+    <Compile Include="..\ErpConnect.Connectors.Tests\SftpServerFixture.cs" Link="Shared\SftpServerFixture.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ErpConnect.Security</RootNamespace>
+    <!-- Requis par LibraryImport (LookupAccountSidW). Aucun code unsafe écrit à la main. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ErpConnect.Core\ErpConnect.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
+  </ItemGroup>
+  <!-- Clé publique de l'éditeur pour vérifier les licences : fournie par la chaîne de publication
+       (dotnet build -p:ErpConnectLicensePublicKey=<base64 SubjectPublicKeyInfo>). Vide : aucune licence vérifiable (évaluation seule). -->
+  <ItemGroup>
+    <AssemblyMetadata Include="ErpConnect.LicensePublicKey" Value="$(ErpConnectLicensePublicKey)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ErpConnect.Security.Tests" />
+  </ItemGroup>
+</Project>
