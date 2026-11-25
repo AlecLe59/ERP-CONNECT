@@ -1,0 +1,33 @@
+ERP CONNECT - KIT DE TEST WINDOWS
+=================================
+
+Version de test, pas l'installeur final. C'est le premier passage du logiciel sur une vraie
+machine Windows : des erreurs sont possibles. En cas de problème, envoyer le fichier
+installation.log (créé dans ce dossier) et une capture d'écran.
+
+Prérequis : Windows 10/11 ou Windows Server 2019+, compte administrateur de la machine.
+Rien d'autre à installer (le moteur embarque .NET ; WebView2 est déjà présent sous Windows 11).
+
+1. Installer
+   - Double-cliquer sur Installer.cmd et accepter la demande d'administrateur.
+   - Le moteur est installé comme service Windows (« ERP Connect Engine »), sans aucun port réseau ouvert.
+   - Votre compte reçoit le rôle Administrateur ERP Connect.
+   - FERMER LA SESSION WINDOWS PUIS LA ROUVRIR (sinon l'application refuse l'accès).
+
+2. Lancer l'application
+   - Double-cliquer sur « ERP Connect.exe ».
+
+3. Essayer une base de données
+   - Connexions > Nouvelle connexion > choisir PostgreSQL, SQL Server, MySQL, Oracle ou ODBC.
+   - Renseigner le serveur, la base, l'utilisateur et le mot de passe, puis « Tester ».
+     Utiliser de préférence un compte en lecture seule et une base de test.
+   - Chiffrement : laisser « require ». Si le serveur a un certificat auto-signé (fréquent avec
+     SQL Server en interne), cocher « Accepter un certificat non vérifié ».
+   - SQL Server avec authentification Windows : cocher « Authentification Windows du service »
+     (le compte NT SERVICE\ERPConnectEngine doit alors avoir accès à la base).
+   - Flux > Nouveau flux : source = la connexion base, ressource = un nom de table ou une requête
+     SELECT ; destination = un dossier local, format CSV. Cliquer sur « Aperçu (20 lignes) », puis « Exécuter ».
+
+4. Désinstaller
+   - Desinstaller.cmd (garde les données dans C:\ProgramData\ERPConnect)
+   - Desinstaller.cmd /tout (efface aussi les données)

@@ -12,14 +12,18 @@
 [CmdletBinding()]
 param(
     [string] $Configuration = "Release",
-    [string] $InstallDir = (Join-Path $env:ProgramFiles "ERP Connect")
+    [string] $InstallDir = (Join-Path $env:ProgramFiles "ERP Connect"),
+    # Binaires déjà publiés (kit de test) : pas de compilation, le SDK .NET n'est pas nécessaire.
+    [string] $BinariesDir,
+    # Ajoute l'utilisateur courant au groupe « ERP Connect Administrateurs » (effectif après reconnexion à Windows).
+    [switch] $AddCurrentUser
 )
 
 $ErrorActionPreference = "Stop"
 $ServiceName = "ERPConnectEngine"
 $ServiceAccount = "NT SERVICE\$ServiceName"
 $DataRoot = Join-Path $env:ProgramData "ERPConnect"
-$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$RepoRoot = if ($BinariesDir) { $null } else { Resolve-Path (Join-Path $PSScriptRoot "..\..") }
 $Groups = @(
     @{ Name = "ERP Connect Administrateurs"; Description = "Rôle Administrateur ERP Connect" },
     @{ Name = "ERP Connect Concepteurs";     Description = "Rôle Concepteur ERP Connect" },
@@ -28,9 +32,16 @@ $Groups = @(
     @{ Name = "ERP Connect Auditeurs";       Description = "Rôle Auditeur ERP Connect" }
 )
 
-Write-Host "1. Publication du service ($Configuration)"
-dotnet publish (Join-Path $RepoRoot "src\ErpConnect.Service\ErpConnect.Service.csproj") -c $Configuration -r win-x64 --self-contained false -o (Join-Path $RepoRoot "artifacts\service")
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish a échoué" }
+if ($BinariesDir) {
+    Write-Host "1. Binaires du kit : $BinariesDir"
+    $Source = Resolve-Path $BinariesDir
+    if (-not (Test-Path (Join-Path $Source "ErpConnect.Service.exe"))) { throw "ErpConnect.Service.exe introuvable dans $Source" }
+} else {
+    Write-Host "1. Publication du service ($Configuration)"
+    $Source = Join-Path $RepoRoot "artifacts\service"
+    dotnet publish (Join-Path $RepoRoot "src\ErpConnect.Service\ErpConnect.Service.csproj") -c $Configuration -r win-x64 --self-contained false -o $Source
+    if ($LASTEXITCODE -ne 0) { throw "dotnet publish a échoué" }
+}
 
 if (Get-Service $ServiceName -ErrorAction SilentlyContinue) {
     Write-Host "   Service existant : arrêt"
@@ -39,7 +50,7 @@ if (Get-Service $ServiceName -ErrorAction SilentlyContinue) {
 
 Write-Host "2. Copie des binaires dans $InstallDir (lecture seule pour tous, écriture administrateurs)"
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-Copy-Item -Path (Join-Path $RepoRoot "artifacts\service\*") -Destination $InstallDir -Recurse -Force
+Copy-Item -Path (Join-Path $Source "*") -Destination $InstallDir -Recurse -Force
 icacls $InstallDir /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)RX" | Out-Null
 
 Write-Host "3. Création ou mise à jour du service"
@@ -64,6 +75,14 @@ Write-Host "5. Groupes locaux"
 foreach ($g in $Groups) {
     if (-not (Get-LocalGroup -Name $g.Name -ErrorAction SilentlyContinue)) {
         New-LocalGroup -Name $g.Name -Description $g.Description | Out-Null
+    }
+}
+
+if ($AddCurrentUser) {
+    $me = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if (-not (Get-LocalGroupMember -Group "ERP Connect Administrateurs" -Member $me -ErrorAction SilentlyContinue)) {
+        Add-LocalGroupMember -Group "ERP Connect Administrateurs" -Member $me
+        Write-Host "   $me ajouté au groupe ERP Connect Administrateurs : fermez la session Windows puis rouvrez-la pour que ce droit soit pris en compte."
     }
 }
 
