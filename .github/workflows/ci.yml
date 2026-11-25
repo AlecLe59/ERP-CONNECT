@@ -64,7 +64,7 @@ jobs:
   dotnet-linux:
     name: Tests .NET (Linux, SFTP réel)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -79,6 +79,29 @@ jobs:
           python-version: "3.12"
       - name: Serveur FTPS pour les tests FTP (pyftpdlib, TLS obligatoire)
         run: python3 -m pip install pyftpdlib==2.2.0 pyopenssl==26.4.0
+      # Vrais serveurs de base de données pour les tests des connecteurs (mot de passe généré à chaque exécution, masqué).
+      - name: Serveurs PostgreSQL, SQL Server, MySQL, Oracle et pilote ODBC
+        run: |
+          sudo apt-get install -y unixodbc odbc-postgresql
+          PW="T$(openssl rand -hex 12)a!"
+          echo "::add-mask::$PW"
+          docker run -d --name pg -e POSTGRES_PASSWORD="$PW" -e POSTGRES_DB=erp -p 54320:5432 postgres:16
+          docker run -d --name mssql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$PW" -p 14330:1433 mcr.microsoft.com/mssql/server:2022-latest
+          docker run -d --name mysql -e MYSQL_ROOT_PASSWORD="$PW" -e MYSQL_DATABASE=erp -p 33060:3306 mysql:8.4
+          docker run -d --name oracle -e ORACLE_PASSWORD="$PW" -e APP_USER=erp -e APP_USER_PASSWORD="$PW" -p 15210:1521 gvenzl/oracle-free:23-slim
+          wait_for() { for i in $(seq 1 120); do if eval "$2" > /dev/null 2>&1; then echo "$1 prêt"; return 0; fi; sleep 5; done; echo "$1 indisponible"; docker logs "$1" | tail -20; return 1; }
+          wait_for pg "docker exec pg pg_isready -U postgres"
+          wait_for mysql "docker exec mysql mysql -uroot -p\"$PW\" -e 'SELECT 1'"
+          wait_for mssql "docker exec mssql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$PW\" -Q 'SELECT 1'"
+          wait_for oracle "docker logs oracle 2>&1 | grep -q 'DATABASE IS READY TO USE'"
+          {
+            echo "ERPCONNECT_REQUIRE_DB=1"
+            echo "ERPCONNECT_TEST_POSTGRESQL={\"host\":\"127.0.0.1\",\"port\":\"54320\",\"database\":\"erp\",\"username\":\"postgres\",\"password\":\"$PW\",\"tls\":\"disable\"}"
+            echo "ERPCONNECT_TEST_SQLSERVER={\"host\":\"127.0.0.1\",\"port\":\"14330\",\"database\":\"erp\",\"username\":\"sa\",\"password\":\"$PW\",\"tls\":\"require\",\"trustServerCertificate\":\"true\"}"
+            echo "ERPCONNECT_TEST_MYSQL={\"host\":\"127.0.0.1\",\"port\":\"33060\",\"database\":\"erp\",\"username\":\"root\",\"password\":\"$PW\",\"tls\":\"require\",\"trustServerCertificate\":\"true\"}"
+            echo "ERPCONNECT_TEST_ORACLE={\"host\":\"127.0.0.1\",\"port\":\"15210\",\"database\":\"FREEPDB1\",\"username\":\"erp\",\"password\":\"$PW\",\"tls\":\"disable\"}"
+            echo "ERPCONNECT_TEST_ODBC={\"connectionString\":\"Driver={PostgreSQL Unicode};Server=127.0.0.1;Port=54320;Database=erp;SSLMode=disable\",\"username\":\"postgres\",\"password\":\"$PW\"}"
+          } >> "$GITHUB_ENV"
       - run: dotnet restore ErpConnect.slnx --locked-mode
       - run: dotnet build ErpConnect.slnx -c Release --no-restore
       # Les tests SFTP et FTPS lancent leurs propres serveurs sans privilège (port local aléatoire, clés et mot de passe générés).
