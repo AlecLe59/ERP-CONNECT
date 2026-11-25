@@ -52,7 +52,7 @@ internal sealed partial class EngineWorker : IHostedService, IAsyncDisposable
             _server = new PipeServer(
                 new PipeServerOptions
                 {
-                    CreatePipe = WindowsPipeFactory.Factory(security, Protocol.MaxConnections),
+                    CreatePipe = WindowsPipeFactory.Factory(security, PipeServerOptions.ListeningInstances(Protocol.MaxConnections)),
                     IdentityOf = WindowsPipeFactory.IdentityOf,
                 },
                 _dispatcher,

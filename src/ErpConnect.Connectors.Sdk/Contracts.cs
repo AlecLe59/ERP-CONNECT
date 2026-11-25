@@ -156,6 +156,16 @@ public interface IRecordReader : IAsyncDisposable
     IAsyncEnumerable<RecordBatch> ReadAsync(string? cursor, CancellationToken ct);
 }
 
+/// <summary>
+/// Lecteur qui sait marquer sa source comme traitée (courriel déplacé dans un dossier, marqué lu…).
+/// Le moteur ne l'appelle qu'à la fin d'une exécution réelle sans rejet, après la publication de la cible :
+/// jamais pour un aperçu, jamais après un échec. Un échec du marquage laisse les données écrites et donne un avertissement.
+/// </summary>
+public interface ISourceAcknowledgement
+{
+    Task AcknowledgeAsync(CancellationToken ct);
+}
+
 public interface IRecordWriter : IAsyncDisposable
 {
     Task<WriteResult> WriteBatchAsync(IReadOnlyList<Record> batch, CancellationToken ct);

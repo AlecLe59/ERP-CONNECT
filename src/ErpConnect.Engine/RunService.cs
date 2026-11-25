@@ -354,6 +354,7 @@ public sealed class RunService : IAsyncDisposable
         var pendingKeys = new List<string>(); // cible fichier : enregistrées seulement après publication
         var cancelled = false;
         string? fatal = null;
+        string? ackWarning = null;
         var reader = sourceConnector.CreateReader(sourceSettings, new ReadRequest(def.Source.Resource, def.BatchSize, FlowDefinition.ToDictionary(def.Source.Options)));
         var writer = targetConnector.CreateWriter(targetSettings, new WriteRequest(def.Target.Resource,
             def.Target.Mode == "overwrite" ? WriteMode.Overwrite : WriteMode.CreateNew, FlowDefinition.ToDictionary(def.Target.Options), run.Id));
@@ -472,6 +473,19 @@ public sealed class RunService : IAsyncDisposable
                     {
                         await _dedup!.RegisterAsync(run.FlowId, run.Id, pendingKeys, _clock.UtcNow, ct).ConfigureAwait(false);
                     }
+
+                    if (reader is ISourceAcknowledgement ack && read > 0)
+                    {
+                        try
+                        {
+                            await ack.AcknowledgeAsync(ct).ConfigureAwait(false);
+                        }
+                        catch (ConnectorException ex)
+                        {
+                            // Les données sont écrites : l'exécution réussit, mais la source sera relue la prochaine fois.
+                            ackWarning = $"Données écrites, mais la source n'a pas pu être marquée comme traitée : {ex.Message}";
+                        }
+                    }
                 }
             }
         }
@@ -506,6 +520,15 @@ public sealed class RunService : IAsyncDisposable
             await _runs.TransitionAsync(run.Id, RunStatus.Running, RunStatus.SucceededWithWarnings, "engine", "Aucun enregistrement", _clock.UtcNow, ct).ConfigureAwait(false);
             _events.RunChanged(run.Id, run.FlowId, RunStatus.SucceededWithWarnings);
             await RaiseAlertAsync(run, "warning", $"Exécution {run.Id} : aucun enregistrement lu.", ct).ConfigureAwait(false);
+            return;
+        }
+
+        if (ackWarning is not null)
+        {
+            await _runs.LogAsync(run.Id, _clock.UtcNow, "warning", $"{ackWarning} {summary}", ct).ConfigureAwait(false);
+            await _runs.TransitionAsync(run.Id, RunStatus.Running, RunStatus.SucceededWithWarnings, "engine", "Source non marquée", _clock.UtcNow, ct).ConfigureAwait(false);
+            _events.RunChanged(run.Id, run.FlowId, RunStatus.SucceededWithWarnings);
+            await RaiseAlertAsync(run, "warning", $"Exécution {run.Id} : {ackWarning}", ct).ConfigureAwait(false);
             return;
         }
 

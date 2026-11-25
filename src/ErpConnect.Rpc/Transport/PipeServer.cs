@@ -17,11 +17,19 @@ public sealed class PipeServerOptions
 
     public int MaxMessageBytes { get; init; } = Protocol.MaxMessageBytes;
 
-    /// <summary>Crée une instance du pipe. <c>first</c> vaut vrai pour la toute première (détection d'un faux serveur).</summary>
+    /// <summary>
+    /// Crée une instance du pipe. <c>first</c> vaut vrai pour la toute première (détection d'un faux serveur).
+    /// Le plafond d'instances du pipe doit être <see cref="ListeningInstances"/>(MaxConnections) : une instance reste toujours
+    /// en écoute en plus des sessions servies. Sinon, sous Linux, quand toutes les sessions se ferment au même moment, plus
+    /// aucune instance n'existe, le socket d'écoute est fermé et les clients en file d'attente voient leur connexion réinitialisée.
+    /// </summary>
     public required Func<string, bool, NamedPipeServerStream> CreatePipe { get; init; }
 
     /// <summary>Identité Windows du client connecté (jeton du pipe).</summary>
     public required Func<NamedPipeServerStream, CallerIdentity> IdentityOf { get; init; }
+
+    /// <summary>Plafond d'instances à donner au pipe : les sessions plus une instance toujours en écoute.</summary>
+    public static int ListeningInstances(int maxConnections) => maxConnections + 1;
 }
 
 /// <summary>Le pipe existe déjà : un autre processus l'a créé avant le service (S4). Le service doit refuser de démarrer.</summary>

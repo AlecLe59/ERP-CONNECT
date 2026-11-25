@@ -187,10 +187,11 @@ public class RestApiTests
     {
         var issued = 0;
         using var server = OAuthServer(() => issued, () => issued++);
-        var ex = await Should.ThrowAsync<ConnectorException>(() => ReadAll(OAuth(server, secret: "faux-secret-123"), new ReadRequest("/a", 10)));
+        var wrong = "faux-" + Guid.NewGuid().ToString("N"); // généré : aucun secret, même factice, dans le dépôt
+        var ex = await Should.ThrowAsync<ConnectorException>(() => ReadAll(OAuth(server, secret: wrong), new ReadRequest("/a", 10)));
         ex.Kind.ShouldBe(ErrorKind.Permanent);
         ex.Message.ShouldContain("Jeton OAuth2 refusé");
-        ex.Message.ShouldNotContain("faux-secret-123");
+        ex.Message.ShouldNotContain(wrong);
         server.Requests.Count(r => r.Path == "/oauth/token").ShouldBe(1, "erreur permanente : pas de nouvelle tentative");
     }
 

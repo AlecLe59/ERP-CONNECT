@@ -767,5 +767,5 @@ public static class ConnectorRegistry
 {
     public static IReadOnlyList<IConnector> CreateDefault() => [new LocalFolderConnector(), new SftpConnector(), new FtpConnector(), new RestConnector(), new SoapConnector(), new SqliteConnector(),
         new Sql.SqlConnector(new Sql.PostgreSqlDialect()), new Sql.SqlConnector(new Sql.SqlServerDialect()), new Sql.SqlConnector(new Sql.MySqlDialect()),
-        new Sql.SqlConnector(new Sql.OracleDialect()), new Sql.SqlConnector(new Sql.OdbcDialect())];
+        new Sql.SqlConnector(new Sql.OracleDialect()), new Sql.SqlConnector(new Sql.OdbcDialect()), new ImapConnector(), new SmtpConnector()];
 }

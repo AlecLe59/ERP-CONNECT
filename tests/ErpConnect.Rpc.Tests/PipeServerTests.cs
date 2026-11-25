@@ -29,7 +29,7 @@ public sealed class PipeServerTests : IAsyncDisposable
                 PipeName = _name,
                 MaxConnections = maxConnections,
                 IdleTimeout = idle ?? TimeSpan.FromMinutes(1),
-                CreatePipe = (n, _) => new NamedPipeServerStream(n, PipeDirection.InOut, maxConnections, PipeTransmissionMode.Byte, PipeOptions.Asynchronous),
+                CreatePipe = (n, _) => new NamedPipeServerStream(n, PipeDirection.InOut, PipeServerOptions.ListeningInstances(maxConnections), PipeTransmissionMode.Byte, PipeOptions.Asynchronous),
                 IdentityOf = _ => Identities.Admin,
             },
             dispatcher,

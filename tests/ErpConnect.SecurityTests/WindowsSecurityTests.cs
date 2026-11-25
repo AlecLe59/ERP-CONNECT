@@ -41,7 +41,7 @@ public class WindowsSecurityTests
         await using var squatter = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         var security = WindowsPipeFactory.BuildSecurity();
         await using var server = new PipeServer(
-            new PipeServerOptions { PipeName = name, CreatePipe = WindowsPipeFactory.Factory(security, 32), IdentityOf = WindowsPipeFactory.IdentityOf },
+            new PipeServerOptions { PipeName = name, CreatePipe = WindowsPipeFactory.Factory(security, PipeServerOptions.ListeningInstances(32)), IdentityOf = WindowsPipeFactory.IdentityOf },
             new RpcDispatcher(new NoAuth(), new NoAudit(), NullLogger<RpcDispatcher>.Instance, "t"),
             NullLogger<PipeServer>.Instance);
         Should.Throw<PipeSquattingException>(server.Start);

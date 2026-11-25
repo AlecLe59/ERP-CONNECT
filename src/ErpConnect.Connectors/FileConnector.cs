@@ -28,7 +28,7 @@ public abstract class FileConnector : IConnector
     /// <summary>Crée le transport pour une configuration. Visible pour les tests de conformité.</summary>
     public abstract IFileTransport CreateTransport(ConnectorSettings settings);
 
-    public async Task<ConnectionTestResult> TestAsync(ConnectorSettings settings, CancellationToken ct)
+    public virtual async Task<ConnectionTestResult> TestAsync(ConnectorSettings settings, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
         try
@@ -99,17 +99,23 @@ public abstract class FileConnector : IConnector
         _ => "array",
     };
 
-    public IRecordReader CreateReader(ConnectorSettings settings, ReadRequest request)
+    public virtual IRecordReader CreateReader(ConnectorSettings settings, ReadRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         return new Reader(CreateTransport(settings), request);
     }
 
-    public IRecordWriter CreateWriter(ConnectorSettings settings, WriteRequest request)
+    public virtual IRecordWriter CreateWriter(ConnectorSettings settings, WriteRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         return new Writer(CreateTransport(settings), request);
     }
+
+    /// <summary>Lecteur fichier standard sur un transport déjà créé (pour un connecteur qui configure son transport selon la requête).</summary>
+    protected static IRecordReader CreateFileReader(IFileTransport transport, ReadRequest request) => new Reader(transport, request);
+
+    /// <summary>Écrivain fichier standard sur un transport déjà créé.</summary>
+    protected static IRecordWriter CreateFileWriter(IFileTransport transport, WriteRequest request) => new Writer(transport, request);
 
     internal static Dictionary<string, string> FormatOptions(IReadOnlyDictionary<string, string>? options) =>
         options?.Where(kv => kv.Key is not ("format" or "archive" or "entryPattern" or "entryName")).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal) ?? new(StringComparer.Ordinal);

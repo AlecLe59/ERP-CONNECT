@@ -93,7 +93,7 @@ internal sealed class EngineHarness : IAsyncDisposable
             {
                 PipeName = PipeName,
                 MaxConnections = maxConnections,
-                CreatePipe = (n, _) => new NamedPipeServerStream(n, PipeDirection.InOut, maxConnections, PipeTransmissionMode.Byte, PipeOptions.Asynchronous),
+                CreatePipe = (n, _) => new NamedPipeServerStream(n, PipeDirection.InOut, PipeServerOptions.ListeningInstances(maxConnections), PipeTransmissionMode.Byte, PipeOptions.Asynchronous),
                 IdentityOf = _ => _nextIdentities.TryDequeue(out var id) ? id : throw new InvalidOperationException("Aucune identité préparée."),
             },
             Dispatcher,
