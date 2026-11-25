@@ -103,18 +103,25 @@ public sealed class PipeServerTests : IAsyncDisposable
             held.Add(c);
         }
 
-        // Windows : la connexion n'aboutit pas (toutes les instances sont occupées).
-        // Unix : le socket accepte la connexion en file d'attente, mais aucune instance ne la sert.
+        // La connexion excédentaire aboutit sur l'instance gardée en écoute, mais n'est pas servie tant qu'aucune place ne se libère.
+        // Unix : l'envoi part dans la file du socket, la réponse n'arrive pas.
+        // Windows : le pipe n'a pas de tampon, l'envoi reste bloqué tant que le serveur ne lit pas (abandonné au bout de 500 ms).
         RpcTestClient? extra = null;
         try
         {
             extra = await RpcTestClient.ConnectAsync(_name, timeoutMs: 500);
+            using var writeLimit = new CancellationTokenSource(500);
             await ErpConnect.Rpc.Transport.MessageFraming.WriteAsync(extra.Stream,
-                """{"jsonrpc":"2.0","id":1,"method":"session.hello","params":{"clientName":"t","clientVersion":"1","protocolVersion":"1.0"}}"""u8.ToArray(), default);
+                """{"jsonrpc":"2.0","id":1,"method":"session.hello","params":{"clientName":"t","clientVersion":"1","protocolVersion":"1.0"}}"""u8.ToArray(), writeLimit.Token);
             (await extra.ReadNotificationAsync(500)).ShouldBeNull("la connexion excédentaire ne doit pas être servie");
         }
-        catch (TimeoutException)
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException)
         {
+            if (extra is not null)
+            {
+                await extra.DisposeAsync(); // envoi interrompu : connexion inutilisable, la reprise est vérifiée plus bas
+                extra = null;
+            }
         }
 
         await held[0].DisposeAsync();
