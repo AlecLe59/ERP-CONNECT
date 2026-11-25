@@ -1,0 +1,52 @@
+# Kit de test Windows : moteur publié (autonome, sans .NET à installer), application de bureau et scripts d'installation.
+# Ce n'est pas l'installeur final (MSI) : il sert à essayer le logiciel sur une vraie machine Windows.
+name: Kit de test Windows
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kit:
+    name: Construire le kit de test
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publier le moteur (win-x64, autonome)
+        run: dotnet publish src/ErpConnect.Service/ErpConnect.Service.csproj -c Release -r win-x64 --self-contained true -o kit/service
+      - name: Construire l'application de bureau
+        working-directory: ui/desktop
+        run: |
+          npm ci
+          npx tauri build --no-bundle
+      - name: Assembler le kit
+        shell: pwsh
+        run: |
+          Copy-Item "ui/desktop/src-tauri/target/release/erp-connect-desktop.exe" "kit/ERP Connect.exe"
+          Copy-Item "tools/kit/*" "kit/"
+          New-Item -ItemType Directory -Force "kit/scripts" | Out-Null
+          Copy-Item "tools/dev/Install-DevService.ps1", "tools/dev/Uninstall-DevService.ps1" "kit/scripts/"
+          "Kit construit le $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC depuis $env:GITHUB_SHA" | Out-File "kit/VERSION.txt" -Encoding utf8
+          Get-ChildItem kit | Format-Table Name, Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ERP-Connect-kit-test-windows
+          path: kit
+          retention-days: 30

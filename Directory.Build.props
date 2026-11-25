@@ -1,15 +1,25 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!--
+      net10.0 (et non net10.0-windows) : le code propre à Windows est isolé et annoté
+      [SupportedOSPlatform("windows")], ce qui permet d'exécuter les tests indépendants de
+      la plateforme sur n'importe quel système. Le produit livré reste Windows uniquement.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Deterministic>true</Deterministic>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <InvariantGlobalization>false</InvariantGlobalization>
     <Company>ERP CONNECT</Company>
     <Product>ERP CONNECT</Product>
+    <Version>0.8.0</Version>
+    <!-- CA1716 : conflit avec les mots-clés VB.NET (aucun consommateur VB). CA1859 : suggestion de performance sur les types d'interface, non retenue. -->
+    <NoWarn>$(NoWarn);CA1716;CA1859</NoWarn>
   </PropertyGroup>
 </Project>

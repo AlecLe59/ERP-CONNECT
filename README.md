@@ -4,10 +4,11 @@ Logiciel d'intégration universelle de données pour Windows, installé chez le 
 
 **Principe :** SOURCE → TRANSFORMATION → DESTINATION
 
-> **État du projet : Phase 1 (conception) terminée. Phase 2 (socle Windows) non démarrée.**
-> Aucune fonctionnalité n'est opérationnelle à ce jour. Ce dépôt ne contient encore que sa structure,
-> sa documentation et ses règles de contribution. Chaque fonctionnalité ne sera déclarée opérationnelle
-> qu'une fois développée, testée et documentée.
+> **État du projet : Phases 2 à 8 développées (socle Windows, connecteurs, exécution par lots, éditeur, planification et reprise, scripts isolés, licence hors ligne, sauvegarde et restauration), en attente de validation sur Windows. Agent distant et Control Center non développés ; installateur MSI à l’état d’ébauche non testée. Voir [l’audit](docs/phases/audit-final.md).**
+> Le socle compile et ses tests passent sous Linux (voir [docs/phases/phase-2-rapport.md](docs/phases/phase-2-rapport.md)).
+> Les parties propres à Windows (service installé, ACL, DPAPI, MSI) sont écrites mais **pas encore testées sur
+> Windows** : rien n'est déclaré opérationnel chez un client avant cette validation.
+> Aucun connecteur ni flux n'existe encore.
 
 ## Architecture
 
@@ -18,6 +19,8 @@ Logiciel d'intégration universelle de données pour Windows, installé chez le 
 | Service Windows | .NET 10 Worker Service | `src/ErpConnect.Service` |
 | Communication locale | JSON-RPC 2.0 sur named pipe (ACL) | `src/ErpConnect.Rpc` |
 | Stockage local | SQLite (WAL) | `src/ErpConnect.Storage` |
+| Services métier | .NET 10 | `src/ErpConnect.Engine` |
+| Contrat JSON-RPC | C# → TypeScript généré | `src/ErpConnect.Contracts`, `ui/packages/contracts` |
 | Secrets | Clé maître DPAPI + AES-256-GCM | `src/ErpConnect.Security` |
 | Installateur | MSI (WiX Toolset) | `installer/` |
 | Agent distant (facultatif) | .NET 10, HTTPS sortant uniquement | Phase 7 |
@@ -50,7 +53,33 @@ ERP-CONNECT/
 - Rust stable (pour la coquille Tauri)
 - WebView2 Runtime
 
-Les commandes de build seront documentées ici à la livraison de la Phase 2.
+## Commandes
+
+```powershell
+# .NET : compilation et tests (les tests Windows sont ignorés hors Windows)
+dotnet build ErpConnect.slnx -c Release
+dotnet test ErpConnect.slnx -c Release
+
+# Contrat : régénérer le client TypeScript et l'instantané après toute modification de ErpConnect.Contracts
+dotnet run --project tools/ErpConnect.Tools.ContractGen
+
+# Interface
+cd ui/desktop
+npm ci
+npm run lint; npm run typecheck; npm test -- --run
+npm run tauri dev        # application de bureau (Windows, moteur installé)
+
+# Coquille Rust
+cargo test --manifest-path ui/desktop/src-tauri/Cargo.toml --workspace
+
+# Service de développement (PowerShell administrateur, Windows)
+.\tools\dev\Install-DevService.ps1
+.\tools\dev\Test-DpapiVirtualAccount.ps1
+.\tools\dev\Uninstall-DevService.ps1 [-RemoveData]
+```
+
+Documentation : [architecture](docs/architecture/vue-ensemble.md), [protocole RPC](docs/architecture/protocole-rpc.md),
+[note DSI](docs/security/guide-dsi.md), [rapports de phase](docs/phases/).
 
 ## Sécurité
 

@@ -1,0 +1,1871 @@
+{
+  "protocolVersion": "1.6",
+  "pipeName": "ERPConnect.Engine",
+  "maxMessageBytes": 4194304,
+  "maxJsonDepth": 64,
+  "methods": [
+    {
+      "name": "alerts.acknowledge",
+      "permissionMode": "Required",
+      "permission": "flows.run",
+      "params": "AlertAcknowledgeParams",
+      "result": "AlertAcknowledgeResult"
+    },
+    {
+      "name": "alerts.list",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "AlertsListParams",
+      "result": "AlertsListResult"
+    },
+    {
+      "name": "audit.query",
+      "permissionMode": "Required",
+      "permission": "audit.read",
+      "params": "AuditQueryParams",
+      "result": "AuditQueryResult"
+    },
+    {
+      "name": "audit.verifyChain",
+      "permissionMode": "Required",
+      "permission": "audit.read",
+      "params": "EmptyParams",
+      "result": "AuditVerifyResult"
+    },
+    {
+      "name": "backup.create",
+      "permissionMode": "Required",
+      "permission": "settings.edit",
+      "params": "BackupCreateParams",
+      "result": "BackupDto"
+    },
+    {
+      "name": "backup.list",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "BackupsListResult"
+    },
+    {
+      "name": "connections.delete",
+      "permissionMode": "Required",
+      "permission": "connections.edit",
+      "params": "IdParams",
+      "result": "DeleteResult"
+    },
+    {
+      "name": "connections.discover",
+      "permissionMode": "Required",
+      "permission": "connections.use",
+      "params": "ConnectionDiscoverParams",
+      "result": "ConnectionDiscoverResult"
+    },
+    {
+      "name": "connections.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "ConnectionsListResult"
+    },
+    {
+      "name": "connections.save",
+      "permissionMode": "Required",
+      "permission": "connections.edit",
+      "params": "ConnectionSaveParams",
+      "result": "ConnectionDto"
+    },
+    {
+      "name": "connections.test",
+      "permissionMode": "Required",
+      "permission": "connections.use",
+      "params": "IdParams",
+      "result": "ConnectionTestResultDto"
+    },
+    {
+      "name": "connectors.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "ConnectorsListResult"
+    },
+    {
+      "name": "events.subscribe",
+      "permissionMode": "PerTopic",
+      "permission": null,
+      "params": "EventsSubscribeParams",
+      "result": "EventsSubscribeResult"
+    },
+    {
+      "name": "events.unsubscribe",
+      "permissionMode": "PerTopic",
+      "permission": null,
+      "params": "EventsSubscribeParams",
+      "result": "EventsSubscribeResult"
+    },
+    {
+      "name": "flows.functions",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "FunctionsListResult"
+    },
+    {
+      "name": "flows.get",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "FlowGetParams",
+      "result": "FlowDetailResult"
+    },
+    {
+      "name": "flows.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "FlowsListResult"
+    },
+    {
+      "name": "flows.preview",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "FlowPreviewParams",
+      "result": "FlowPreviewResult"
+    },
+    {
+      "name": "flows.publish",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "FlowPublishParams",
+      "result": "FlowSummaryDto"
+    },
+    {
+      "name": "flows.save",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "FlowSaveParams",
+      "result": "FlowSummaryDto"
+    },
+    {
+      "name": "license.get",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "LicenseStatusResult"
+    },
+    {
+      "name": "license.import",
+      "permissionMode": "Required",
+      "permission": "license.manage",
+      "params": "LicenseImportParams",
+      "result": "LicenseStatusResult"
+    },
+    {
+      "name": "license.remove",
+      "permissionMode": "Required",
+      "permission": "license.manage",
+      "params": "EmptyParams",
+      "result": "DeleteResult"
+    },
+    {
+      "name": "runs.cancel",
+      "permissionMode": "Required",
+      "permission": "runs.cancel",
+      "params": "IdParams",
+      "result": "RunCancelResult"
+    },
+    {
+      "name": "runs.get",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "IdParams",
+      "result": "RunDetailResult"
+    },
+    {
+      "name": "runs.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "RunsListParams",
+      "result": "RunsListResult"
+    },
+    {
+      "name": "runs.resume",
+      "permissionMode": "Required",
+      "permission": "flows.run",
+      "params": "IdParams",
+      "result": "RunDto"
+    },
+    {
+      "name": "runs.start",
+      "permissionMode": "Required",
+      "permission": "flows.run",
+      "params": "RunStartParams",
+      "result": "RunDto"
+    },
+    {
+      "name": "schedules.delete",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "IdParams",
+      "result": "DeleteResult"
+    },
+    {
+      "name": "schedules.list",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "SchedulesListResult"
+    },
+    {
+      "name": "schedules.save",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "ScheduleSaveParams",
+      "result": "ScheduleDto"
+    },
+    {
+      "name": "scripts.limits",
+      "permissionMode": "Required",
+      "permission": "flows.read",
+      "params": "EmptyParams",
+      "result": "ScriptLimitsResult"
+    },
+    {
+      "name": "scripts.test",
+      "permissionMode": "Required",
+      "permission": "flows.edit",
+      "params": "ScriptTestParams",
+      "result": "ScriptTestResult"
+    },
+    {
+      "name": "session.hello",
+      "permissionMode": "None",
+      "permission": null,
+      "params": "HelloParams",
+      "result": "HelloResult"
+    },
+    {
+      "name": "settings.get",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "SettingsResult"
+    },
+    {
+      "name": "settings.update",
+      "permissionMode": "Required",
+      "permission": "settings.edit",
+      "params": "SettingsUpdateParams",
+      "result": "SettingsResult"
+    },
+    {
+      "name": "system.getInfo",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "SystemInfoResult"
+    },
+    {
+      "name": "system.getStatus",
+      "permissionMode": "Required",
+      "permission": "dashboard.read",
+      "params": "EmptyParams",
+      "result": "SystemStatusResult"
+    },
+    {
+      "name": "users.assignRole",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "AssignRoleParams",
+      "result": "RoleAssignmentDto"
+    },
+    {
+      "name": "users.listAssignments",
+      "permissionMode": "Required",
+      "permission": "users.read",
+      "params": "EmptyParams",
+      "result": "ListAssignmentsResult"
+    },
+    {
+      "name": "users.resolvePrincipal",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "ResolvePrincipalParams",
+      "result": "ResolvePrincipalResult"
+    },
+    {
+      "name": "users.revokeRole",
+      "permissionMode": "Required",
+      "permission": "users.manage",
+      "params": "RevokeRoleParams",
+      "result": "RevokeRoleResult"
+    },
+    {
+      "name": "vault.getStatus",
+      "permissionMode": "Required",
+      "permission": "settings.read",
+      "params": "EmptyParams",
+      "result": "VaultStatusResult"
+    }
+  ],
+  "notifications": [
+    {
+      "name": "alerts.raised",
+      "permission": "dashboard.read",
+      "payload": "AlertRaisedPayload"
+    },
+    {
+      "name": "audit.appended",
+      "permission": "audit.read",
+      "payload": "AuditAppendedPayload"
+    },
+    {
+      "name": "engine.statusChanged",
+      "permission": "dashboard.read",
+      "payload": "EngineStatusChangedPayload"
+    },
+    {
+      "name": "runs.changed",
+      "permission": "flows.read",
+      "payload": "RunChangedPayload"
+    },
+    {
+      "name": "settings.changed",
+      "permission": "settings.read",
+      "payload": "SettingsChangedPayload"
+    }
+  ],
+  "errors": [
+    {
+      "name": "Conflict",
+      "code": -32004
+    },
+    {
+      "name": "EngineUnavailable",
+      "code": -32010
+    },
+    {
+      "name": "EntitlementDenied",
+      "code": -32011
+    },
+    {
+      "name": "Forbidden",
+      "code": -32002
+    },
+    {
+      "name": "InternalError",
+      "code": -32603
+    },
+    {
+      "name": "InvalidParams",
+      "code": -32602
+    },
+    {
+      "name": "InvalidRequest",
+      "code": -32600
+    },
+    {
+      "name": "MethodNotFound",
+      "code": -32601
+    },
+    {
+      "name": "NotFound",
+      "code": -32003
+    },
+    {
+      "name": "ParseError",
+      "code": -32700
+    },
+    {
+      "name": "ProtocolVersionMismatch",
+      "code": -32006
+    },
+    {
+      "name": "Unauthenticated",
+      "code": -32001
+    },
+    {
+      "name": "ValidationFailed",
+      "code": -32005
+    }
+  ],
+  "types": {
+    "AlertAcknowledgeParams": [
+      {
+        "name": "id",
+        "type": "number"
+      }
+    ],
+    "AlertAcknowledgeResult": [
+      {
+        "name": "acknowledged",
+        "type": "boolean"
+      }
+    ],
+    "AlertDto": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "runId",
+        "type": "string | null"
+      },
+      {
+        "name": "severity",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "acknowledgedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "acknowledgedBy",
+        "type": "string | null"
+      }
+    ],
+    "AlertRaisedPayload": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "severity",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "AlertsListParams": [
+      {
+        "name": "openOnly",
+        "type": "boolean"
+      },
+      {
+        "name": "limit",
+        "type": "number"
+      }
+    ],
+    "AlertsListResult": [
+      {
+        "name": "alerts",
+        "type": "AlertDto[]"
+      }
+    ],
+    "AssignRoleParams": [
+      {
+        "name": "principalSid",
+        "type": "string"
+      },
+      {
+        "name": "principalName",
+        "type": "string"
+      },
+      {
+        "name": "principalKind",
+        "type": "string"
+      },
+      {
+        "name": "role",
+        "type": "string"
+      }
+    ],
+    "AuditAppendedPayload": [
+      {
+        "name": "sequence",
+        "type": "number"
+      },
+      {
+        "name": "action",
+        "type": "string"
+      },
+      {
+        "name": "outcome",
+        "type": "string"
+      }
+    ],
+    "AuditEventDto": [
+      {
+        "name": "sequence",
+        "type": "number"
+      },
+      {
+        "name": "timestamp",
+        "type": "string"
+      },
+      {
+        "name": "actorSid",
+        "type": "string"
+      },
+      {
+        "name": "actorName",
+        "type": "string"
+      },
+      {
+        "name": "action",
+        "type": "string"
+      },
+      {
+        "name": "target",
+        "type": "string"
+      },
+      {
+        "name": "outcome",
+        "type": "string"
+      },
+      {
+        "name": "details",
+        "type": "string | null"
+      },
+      {
+        "name": "correlationId",
+        "type": "string"
+      },
+      {
+        "name": "hash",
+        "type": "string"
+      }
+    ],
+    "AuditQueryParams": [
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      },
+      {
+        "name": "action",
+        "type": "string | null"
+      },
+      {
+        "name": "from",
+        "type": "string | null"
+      },
+      {
+        "name": "to",
+        "type": "string | null"
+      }
+    ],
+    "AuditQueryResult": [
+      {
+        "name": "items",
+        "type": "AuditEventDto[]"
+      },
+      {
+        "name": "total",
+        "type": "number"
+      },
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      }
+    ],
+    "AuditVerifyResult": [
+      {
+        "name": "valid",
+        "type": "boolean"
+      },
+      {
+        "name": "checkedCount",
+        "type": "number"
+      },
+      {
+        "name": "firstInvalidSequence",
+        "type": "number | null"
+      },
+      {
+        "name": "reason",
+        "type": "string | null"
+      }
+    ],
+    "BackupCreateParams": [
+      {
+        "name": "passphrase",
+        "type": "string | null"
+      }
+    ],
+    "BackupDto": [
+      {
+        "name": "fileName",
+        "type": "string"
+      },
+      {
+        "name": "size",
+        "type": "number"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "includesKeys",
+        "type": "boolean"
+      }
+    ],
+    "BackupsListResult": [
+      {
+        "name": "backups",
+        "type": "BackupDto[]"
+      },
+      {
+        "name": "folder",
+        "type": "string"
+      }
+    ],
+    "ConfigFieldDto": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "label",
+        "type": "string"
+      },
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "required",
+        "type": "boolean"
+      },
+      {
+        "name": "secret",
+        "type": "boolean"
+      },
+      {
+        "name": "default",
+        "type": "string | null"
+      },
+      {
+        "name": "choices",
+        "type": "string[]"
+      },
+      {
+        "name": "help",
+        "type": "string | null"
+      }
+    ],
+    "ConnectionDiscoverParams": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "resource",
+        "type": "string | null"
+      }
+    ],
+    "ConnectionDiscoverResult": [
+      {
+        "name": "resources",
+        "type": "string[]"
+      },
+      {
+        "name": "fields",
+        "type": "DiscoveredFieldDto[]"
+      }
+    ],
+    "ConnectionDto": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "connectorId",
+        "type": "string"
+      },
+      {
+        "name": "settings",
+        "type": "KeyValueDto[]"
+      },
+      {
+        "name": "secretFields",
+        "type": "string[]"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "ConnectionSaveParams": [
+      {
+        "name": "id",
+        "type": "string | null"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "connectorId",
+        "type": "string"
+      },
+      {
+        "name": "settings",
+        "type": "KeyValueDto[]"
+      },
+      {
+        "name": "secrets",
+        "type": "KeyValueDto[]"
+      },
+      {
+        "name": "clearSecrets",
+        "type": "string[]"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "number"
+      }
+    ],
+    "ConnectionTestResultDto": [
+      {
+        "name": "success",
+        "type": "boolean"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      },
+      {
+        "name": "durationMs",
+        "type": "number"
+      }
+    ],
+    "ConnectionsListResult": [
+      {
+        "name": "connections",
+        "type": "ConnectionDto[]"
+      }
+    ],
+    "ConnectorDto": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "name": "capabilities",
+        "type": "string[]"
+      },
+      {
+        "name": "configFields",
+        "type": "ConfigFieldDto[]"
+      }
+    ],
+    "ConnectorsListResult": [
+      {
+        "name": "connectors",
+        "type": "ConnectorDto[]"
+      },
+      {
+        "name": "formats",
+        "type": "FormatDto[]"
+      }
+    ],
+    "DatabaseStatusDto": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "ok",
+        "type": "boolean"
+      },
+      {
+        "name": "schemaVersion",
+        "type": "number"
+      }
+    ],
+    "DeleteResult": [
+      {
+        "name": "deleted",
+        "type": "boolean"
+      }
+    ],
+    "DiscoveredFieldDto": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "type",
+        "type": "string"
+      },
+      {
+        "name": "children",
+        "type": "DiscoveredFieldDto[]"
+      }
+    ],
+    "EmptyParams": [],
+    "EngineStatusChangedPayload": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "at",
+        "type": "string"
+      }
+    ],
+    "EventsSubscribeParams": [
+      {
+        "name": "topics",
+        "type": "string[]"
+      }
+    ],
+    "EventsSubscribeResult": [
+      {
+        "name": "subscribed",
+        "type": "string[]"
+      }
+    ],
+    "FieldErrorDto": [
+      {
+        "name": "field",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "FieldMapDto": [
+      {
+        "name": "target",
+        "type": "string"
+      },
+      {
+        "name": "expression",
+        "type": "string"
+      }
+    ],
+    "FlowDefinitionDto": [
+      {
+        "name": "source",
+        "type": "SourceSpecDto"
+      },
+      {
+        "name": "target",
+        "type": "TargetSpecDto"
+      },
+      {
+        "name": "mapping",
+        "type": "MappingSpecDto"
+      },
+      {
+        "name": "batchSize",
+        "type": "number"
+      },
+      {
+        "name": "maxRejects",
+        "type": "number"
+      },
+      {
+        "name": "steps",
+        "type": "StepSpecDto[] | null"
+      },
+      {
+        "name": "dedupKey",
+        "type": "string | null"
+      }
+    ],
+    "FlowDetailResult": [
+      {
+        "name": "flow",
+        "type": "FlowSummaryDto"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "definition",
+        "type": "FlowDefinitionDto"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "createdBy",
+        "type": "string"
+      },
+      {
+        "name": "publishedAt",
+        "type": "string | null"
+      }
+    ],
+    "FlowGetParams": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "number | null"
+      }
+    ],
+    "FlowPreviewParams": [
+      {
+        "name": "definition",
+        "type": "FlowDefinitionDto"
+      },
+      {
+        "name": "limit",
+        "type": "number"
+      }
+    ],
+    "FlowPreviewResult": [
+      {
+        "name": "rows",
+        "type": "PreviewRowDto[]"
+      },
+      {
+        "name": "sourceFields",
+        "type": "string[]"
+      }
+    ],
+    "FlowPublishParams": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      }
+    ],
+    "FlowSaveParams": [
+      {
+        "name": "id",
+        "type": "string | null"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "name": "definition",
+        "type": "FlowDefinitionDto"
+      },
+      {
+        "name": "expectedDraftVersion",
+        "type": "number"
+      }
+    ],
+    "FlowSummaryDto": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "name": "draftVersion",
+        "type": "number"
+      },
+      {
+        "name": "publishedVersion",
+        "type": "number | null"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "FlowsListResult": [
+      {
+        "name": "flows",
+        "type": "FlowSummaryDto[]"
+      }
+    ],
+    "FormatDto": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "options",
+        "type": "ConfigFieldDto[]"
+      }
+    ],
+    "FunctionDto": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "signature",
+        "type": "string"
+      },
+      {
+        "name": "help",
+        "type": "string"
+      }
+    ],
+    "FunctionsListResult": [
+      {
+        "name": "functions",
+        "type": "FunctionDto[]"
+      }
+    ],
+    "HelloParams": [
+      {
+        "name": "clientName",
+        "type": "string"
+      },
+      {
+        "name": "clientVersion",
+        "type": "string"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "string"
+      }
+    ],
+    "HelloResult": [
+      {
+        "name": "sessionId",
+        "type": "string"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "string"
+      },
+      {
+        "name": "serverVersion",
+        "type": "string"
+      },
+      {
+        "name": "userSid",
+        "type": "string"
+      },
+      {
+        "name": "userName",
+        "type": "string"
+      },
+      {
+        "name": "roles",
+        "type": "string[]"
+      },
+      {
+        "name": "permissions",
+        "type": "string[]"
+      }
+    ],
+    "IdParams": [
+      {
+        "name": "id",
+        "type": "string"
+      }
+    ],
+    "KeyValueDto": [
+      {
+        "name": "key",
+        "type": "string"
+      },
+      {
+        "name": "value",
+        "type": "string | null"
+      }
+    ],
+    "LicenseImportParams": [
+      {
+        "name": "content",
+        "type": "string"
+      }
+    ],
+    "LicenseInfoDto": [
+      {
+        "name": "licenseId",
+        "type": "string"
+      },
+      {
+        "name": "customer",
+        "type": "string"
+      },
+      {
+        "name": "edition",
+        "type": "string"
+      },
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "issuedAt",
+        "type": "string"
+      },
+      {
+        "name": "expiresAt",
+        "type": "string | null"
+      },
+      {
+        "name": "features",
+        "type": "string[]"
+      },
+      {
+        "name": "maxPublishedFlows",
+        "type": "number | null"
+      }
+    ],
+    "LicenseStatusResult": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "evaluationEndsAt",
+        "type": "string | null"
+      },
+      {
+        "name": "license",
+        "type": "LicenseInfoDto | null"
+      },
+      {
+        "name": "problem",
+        "type": "string | null"
+      },
+      {
+        "name": "importedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "importedBy",
+        "type": "string | null"
+      },
+      {
+        "name": "canVerify",
+        "type": "boolean"
+      },
+      {
+        "name": "publishedFlows",
+        "type": "number"
+      }
+    ],
+    "ListAssignmentsResult": [
+      {
+        "name": "items",
+        "type": "RoleAssignmentDto[]"
+      }
+    ],
+    "MappingSpecDto": [
+      {
+        "name": "mode",
+        "type": "string"
+      },
+      {
+        "name": "fields",
+        "type": "FieldMapDto[]"
+      }
+    ],
+    "PreviewRowDto": [
+      {
+        "name": "sourceJson",
+        "type": "string"
+      },
+      {
+        "name": "outputJson",
+        "type": "string | null"
+      },
+      {
+        "name": "fate",
+        "type": "string"
+      },
+      {
+        "name": "reason",
+        "type": "string | null"
+      }
+    ],
+    "ResolvePrincipalParams": [
+      {
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "ResolvePrincipalResult": [
+      {
+        "name": "found",
+        "type": "boolean"
+      },
+      {
+        "name": "sid",
+        "type": "string | null"
+      },
+      {
+        "name": "name",
+        "type": "string | null"
+      },
+      {
+        "name": "kind",
+        "type": "string | null"
+      }
+    ],
+    "RevokeRoleParams": [
+      {
+        "name": "assignmentId",
+        "type": "number"
+      }
+    ],
+    "RevokeRoleResult": [
+      {
+        "name": "revoked",
+        "type": "boolean"
+      }
+    ],
+    "RoleAssignmentDto": [
+      {
+        "name": "id",
+        "type": "number"
+      },
+      {
+        "name": "principalSid",
+        "type": "string"
+      },
+      {
+        "name": "principalName",
+        "type": "string"
+      },
+      {
+        "name": "principalKind",
+        "type": "string"
+      },
+      {
+        "name": "role",
+        "type": "string"
+      },
+      {
+        "name": "scope",
+        "type": "string"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "createdBy",
+        "type": "string"
+      }
+    ],
+    "RpcErrorData": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "correlationId",
+        "type": "string"
+      },
+      {
+        "name": "fields",
+        "type": "FieldErrorDto[] | null"
+      }
+    ],
+    "RunCancelResult": [
+      {
+        "name": "accepted",
+        "type": "boolean"
+      }
+    ],
+    "RunChangedPayload": [
+      {
+        "name": "runId",
+        "type": "string"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "RunDetailResult": [
+      {
+        "name": "run",
+        "type": "RunDto"
+      },
+      {
+        "name": "rejects",
+        "type": "RunRejectDto[]"
+      },
+      {
+        "name": "logs",
+        "type": "RunLogDto[]"
+      }
+    ],
+    "RunDto": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "flowVersion",
+        "type": "number"
+      },
+      {
+        "name": "status",
+        "type": "string"
+      },
+      {
+        "name": "statusLabel",
+        "type": "string"
+      },
+      {
+        "name": "triggeredBy",
+        "type": "string"
+      },
+      {
+        "name": "parentRunId",
+        "type": "string | null"
+      },
+      {
+        "name": "createdAt",
+        "type": "string"
+      },
+      {
+        "name": "startedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "endedAt",
+        "type": "string | null"
+      },
+      {
+        "name": "readCount",
+        "type": "number"
+      },
+      {
+        "name": "writtenCount",
+        "type": "number"
+      },
+      {
+        "name": "rejectedCount",
+        "type": "number"
+      },
+      {
+        "name": "skippedCount",
+        "type": "number"
+      },
+      {
+        "name": "error",
+        "type": "string | null"
+      },
+      {
+        "name": "trigger",
+        "type": "string | null"
+      },
+      {
+        "name": "errorKind",
+        "type": "string | null"
+      }
+    ],
+    "RunLogDto": [
+      {
+        "name": "at",
+        "type": "string"
+      },
+      {
+        "name": "level",
+        "type": "string"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "RunRejectDto": [
+      {
+        "name": "batchNumber",
+        "type": "number"
+      },
+      {
+        "name": "recordIndex",
+        "type": "number"
+      },
+      {
+        "name": "stage",
+        "type": "string"
+      },
+      {
+        "name": "reason",
+        "type": "string"
+      },
+      {
+        "name": "recordJson",
+        "type": "string | null"
+      },
+      {
+        "name": "at",
+        "type": "string"
+      }
+    ],
+    "RunStartParams": [
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "useDraft",
+        "type": "boolean"
+      }
+    ],
+    "RunsListParams": [
+      {
+        "name": "flowId",
+        "type": "string | null"
+      },
+      {
+        "name": "status",
+        "type": "string | null"
+      },
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      }
+    ],
+    "RunsListResult": [
+      {
+        "name": "items",
+        "type": "RunDto[]"
+      },
+      {
+        "name": "total",
+        "type": "number"
+      },
+      {
+        "name": "page",
+        "type": "number"
+      },
+      {
+        "name": "pageSize",
+        "type": "number"
+      }
+    ],
+    "ScheduleDto": [
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "cron",
+        "type": "string"
+      },
+      {
+        "name": "timeZone",
+        "type": "string"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean"
+      },
+      {
+        "name": "maxRetries",
+        "type": "number"
+      },
+      {
+        "name": "retryDelaySeconds",
+        "type": "number"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      },
+      {
+        "name": "nextRunAt",
+        "type": "string | null"
+      },
+      {
+        "name": "lastRunId",
+        "type": "string | null"
+      },
+      {
+        "name": "retryAttempt",
+        "type": "number"
+      },
+      {
+        "name": "retryAt",
+        "type": "string | null"
+      }
+    ],
+    "ScheduleSaveParams": [
+      {
+        "name": "flowId",
+        "type": "string"
+      },
+      {
+        "name": "cron",
+        "type": "string"
+      },
+      {
+        "name": "timeZone",
+        "type": "string"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean"
+      },
+      {
+        "name": "maxRetries",
+        "type": "number"
+      },
+      {
+        "name": "retryDelaySeconds",
+        "type": "number"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "number"
+      }
+    ],
+    "SchedulesListResult": [
+      {
+        "name": "schedules",
+        "type": "ScheduleDto[]"
+      }
+    ],
+    "ScriptLimitsResult": [
+      {
+        "name": "timeoutMs",
+        "type": "number"
+      },
+      {
+        "name": "memoryBytes",
+        "type": "number"
+      },
+      {
+        "name": "maxStatements",
+        "type": "number"
+      },
+      {
+        "name": "maxRecursion",
+        "type": "number"
+      },
+      {
+        "name": "maxArraySize",
+        "type": "number"
+      },
+      {
+        "name": "maxSourceLength",
+        "type": "number"
+      }
+    ],
+    "ScriptTestParams": [
+      {
+        "name": "code",
+        "type": "string"
+      },
+      {
+        "name": "recordJson",
+        "type": "string"
+      }
+    ],
+    "ScriptTestResult": [
+      {
+        "name": "fate",
+        "type": "string"
+      },
+      {
+        "name": "outputJson",
+        "type": "string | null"
+      },
+      {
+        "name": "reason",
+        "type": "string | null"
+      },
+      {
+        "name": "elapsedMs",
+        "type": "number"
+      }
+    ],
+    "SettingsChangedPayload": [
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "SettingsDto": [
+      {
+        "name": "runHeaderRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "succeededLogRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "failedLogRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "rejectRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "deduplicationRetentionDays",
+        "type": "number"
+      },
+      {
+        "name": "logLevel",
+        "type": "string"
+      },
+      {
+        "name": "language",
+        "type": "string"
+      },
+      {
+        "name": "scriptsEnabled",
+        "type": "boolean"
+      }
+    ],
+    "SettingsResult": [
+      {
+        "name": "settings",
+        "type": "SettingsDto"
+      },
+      {
+        "name": "version",
+        "type": "number"
+      },
+      {
+        "name": "updatedAt",
+        "type": "string"
+      },
+      {
+        "name": "updatedBy",
+        "type": "string"
+      }
+    ],
+    "SettingsUpdateParams": [
+      {
+        "name": "settings",
+        "type": "SettingsDto"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "number"
+      }
+    ],
+    "SourceSpecDto": [
+      {
+        "name": "connectionId",
+        "type": "string"
+      },
+      {
+        "name": "resource",
+        "type": "string"
+      },
+      {
+        "name": "options",
+        "type": "KeyValueDto[]"
+      }
+    ],
+    "StepSpecDto": [
+      {
+        "name": "kind",
+        "type": "string"
+      },
+      {
+        "name": "field",
+        "type": "string | null"
+      },
+      {
+        "name": "expression",
+        "type": "string | null"
+      },
+      {
+        "name": "target",
+        "type": "string | null"
+      },
+      {
+        "name": "message",
+        "type": "string | null"
+      }
+    ],
+    "SystemInfoResult": [
+      {
+        "name": "installationId",
+        "type": "string"
+      },
+      {
+        "name": "machineName",
+        "type": "string"
+      },
+      {
+        "name": "serviceAccount",
+        "type": "string"
+      },
+      {
+        "name": "dataDirectory",
+        "type": "string"
+      },
+      {
+        "name": "logDirectory",
+        "type": "string"
+      },
+      {
+        "name": "osDescription",
+        "type": "string"
+      },
+      {
+        "name": "installedAt",
+        "type": "string"
+      }
+    ],
+    "SystemStatusResult": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "uptimeSeconds",
+        "type": "number"
+      },
+      {
+        "name": "dataDiskFreeBytes",
+        "type": "number"
+      },
+      {
+        "name": "dataDiskTotalBytes",
+        "type": "number"
+      },
+      {
+        "name": "databases",
+        "type": "DatabaseStatusDto[]"
+      },
+      {
+        "name": "vault",
+        "type": "VaultStatusResult"
+      },
+      {
+        "name": "serverTime",
+        "type": "string"
+      }
+    ],
+    "TargetSpecDto": [
+      {
+        "name": "connectionId",
+        "type": "string"
+      },
+      {
+        "name": "resource",
+        "type": "string"
+      },
+      {
+        "name": "mode",
+        "type": "string"
+      },
+      {
+        "name": "options",
+        "type": "KeyValueDto[]"
+      }
+    ],
+    "VaultStatusResult": [
+      {
+        "name": "initialized",
+        "type": "boolean"
+      },
+      {
+        "name": "activeKeyVersion",
+        "type": "number | null"
+      },
+      {
+        "name": "secretCount",
+        "type": "number"
+      },
+      {
+        "name": "protection",
+        "type": "string"
+      }
+    ]
+  }
+}
